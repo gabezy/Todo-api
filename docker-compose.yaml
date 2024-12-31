@@ -1,0 +1,17 @@
+name: todo-api
+
+services:
+  db:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    volumes:
+      - data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=secretpw
+      - MYSQL_DATABASE=DEV
+      - MYSQL_USER=USER_TODO
+      - MYSQL_PASSWORD=secret
+
+volumes:
+  data:
