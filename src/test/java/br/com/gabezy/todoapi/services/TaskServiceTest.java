@@ -37,13 +37,13 @@ class TaskServiceTest extends GenericTestBase {
 
         TaskDTO newTask = new TaskDTO("Learn Spring Boot", Boolean.FALSE);
 
-        taskService.createTask(newTask);
+        Task task = taskService.createTask(newTask);
 
         var taskOptional = taskRespository.findById(1L);
 
         assertTrue(taskOptional.isPresent());
-        assertEquals(newTask.content(), taskOptional.get().getContent());
-        assertEquals(newTask.completed(), taskOptional.get().getCompleted());
+        assertEquals(taskOptional.get().getContent(), task.getContent());
+        assertEquals(taskOptional.get().getCompleted(), task.getCompleted());
     }
 
     @Test
@@ -64,8 +64,7 @@ class TaskServiceTest extends GenericTestBase {
 
     @Test
     void should_find_task_by_id() {
-        String sql = "INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES (1, 'Learn Spring Data', 1)";
-        jdbcTemplate.execute(sql);
+        insertTaskWithIdOne("Learn Spring Data", Boolean.TRUE);
 
         Task task = taskService.findById(1L);
 
@@ -131,8 +130,7 @@ class TaskServiceTest extends GenericTestBase {
 
     @Test
     void should_update_existing_task() {
-        String sql = "INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES (1, 'Learn Spring Data', 1)";
-        jdbcTemplate.execute(sql);
+        insertTaskWithIdOne("Learn Spring Data", Boolean.TRUE);
 
         assertTrue(taskRespository.findById(1L).isPresent());
 
@@ -157,7 +155,7 @@ class TaskServiceTest extends GenericTestBase {
 
     @Test
     @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    void should_change_taskCompletedStatus() {
+    void should_change_task_completedStatus() {
         Optional<Task> task1 = taskRespository.findById(1L);
         Optional<Task> task2 = taskRespository.findById(2L);
 
@@ -177,9 +175,42 @@ class TaskServiceTest extends GenericTestBase {
         assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
     }
 
+    @Test
+    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    void should_throw_resourceNotFoundException_when_change_task_completedStatus_by_invalid_id() {
+        Long invalidId = 1000L;
+        Optional<Task> task1 = taskRespository.findById(invalidId);
+
+        assertFalse(task1.isPresent());
+
+        assertThrowsExactly(ResourceNotFoundException.class,
+                () -> taskService.changeCompletedStatus(invalidId, Boolean.FALSE));
+    }
+
+    @Test
+    void should_delete_task_by_id() {
+        insertTaskWithIdOne("some task to do", Boolean.FALSE);
+
+        assertTrue(taskRespository.findById(1L).isPresent());
+
+        taskService.deleteTask(1L);
+
+        assertFalse(taskRespository.findById(1L).isPresent());
+
+        assertFalse(taskRespository.findById(1000L).isPresent());
+
+        taskService.deleteTask(1000L);
+    }
+
     @AfterEach
     void clean() {
         JdbcTestUtils.deleteFromTables(jdbcTemplate, "TASK");
+    }
+
+    private void insertTaskWithIdOne(String content, Boolean completed) {
+        int completedStatus = completed.equals(Boolean.TRUE) ? 1 : 0;
+        String sql = String.format("INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES (1, '%s', %d)", content, completedStatus);
+        jdbcTemplate.execute(sql);
     }
 
 }
