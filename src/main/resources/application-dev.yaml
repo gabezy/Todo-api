@@ -1,3 +1,22 @@
 spring:
   application:
     name: Todo-api
+  datasource:
+    url: jdbc:mysql://localhost:3306/DEV
+    username: USER_TODO
+    password: secret
+    driver-class-name: com.mysql.jdbc.Driver
+    hikari:
+      auto-commit: true
+      maximum-pool-size: 5
+  flyway:
+    enabled: true
+    url: jdbc:mysql://localhost:3306/DEV
+    user: root
+    password: secretpw
+    table: FLYWAY_SCHEMA_HISTORY
+
+logging:
+  level:
+    sql: info
+    root: info
