@@ -3,6 +3,7 @@ package br.com.gabezy.todoapi.services;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
+import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.TaskRespository;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class TaskService {
 
     public Task findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TASK_NOT_FOUND));
     }
 
     public List<Task> findByFilter(TaskFilterDTO dto) {
