@@ -1,5 +1,6 @@
 package br.com.gabezy.todoapi.controllers;
 
+import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
@@ -45,5 +46,17 @@ public class TaskController {
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Task> findById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(taskService.findById(id));
+    }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @Valid @RequestBody TaskDTO request) {
+        taskService.updateTask(id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> patchCompletedTask(@PathVariable("id") Long id, @Valid @RequestBody TaskCompletedDTO request) {
+        taskService.patchCompletedStatus(id, request);
+        return ResponseEntity.noContent().build();
     }
 }

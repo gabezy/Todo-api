@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.GenericTestBase;
+import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
@@ -146,7 +147,7 @@ class TaskServiceTest extends GenericTestBase {
 
     @Test
     void should_throw_resourceNotFoundException_when_find_update_task_by_invalid_id() {
-        Long invalidId = 1000L;
+        Long invalidId = 1L;
         assertFalse(taskRespository.findById(invalidId).isPresent());
 
         assertThrowsExactly(ResourceNotFoundException.class,
@@ -165,13 +166,13 @@ class TaskServiceTest extends GenericTestBase {
         assertTrue(task2.isPresent());
         assertEquals(Boolean.TRUE, task2.get().getCompleted());
 
-        taskService.changeCompletedStatus(1L, Boolean.TRUE);
-        taskService.changeCompletedStatus(2L, Boolean.FALSE);
+        taskService.patchCompletedStatus(1L, new TaskCompletedDTO(Boolean.TRUE));
+        taskService.patchCompletedStatus(2L, new TaskCompletedDTO(Boolean.FALSE));
 
         assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
         assertEquals(Boolean.FALSE, taskService.findById(2L).getCompleted());
 
-        taskService.changeCompletedStatus(1L, Boolean.TRUE);
+        taskService.patchCompletedStatus(1L, new TaskCompletedDTO(Boolean.TRUE));
         assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
     }
 
@@ -184,7 +185,7 @@ class TaskServiceTest extends GenericTestBase {
         assertFalse(task1.isPresent());
 
         assertThrowsExactly(ResourceNotFoundException.class,
-                () -> taskService.changeCompletedStatus(invalidId, Boolean.FALSE));
+                () -> taskService.patchCompletedStatus(invalidId, new TaskCompletedDTO(Boolean.FALSE)));
     }
 
     @Test

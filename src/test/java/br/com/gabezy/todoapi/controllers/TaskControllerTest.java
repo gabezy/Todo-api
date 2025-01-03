@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.controllers;
 
 import br.com.gabezy.todoapi.GenericTestBase;
+import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
@@ -24,8 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -68,11 +68,13 @@ class TaskControllerTest extends GenericTestBase {
     void should_return_404_notFound_get_nonExisting_task() throws Exception {
         assertFalse(taskRespository.findById(1000L).isPresent());
 
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
         mockMvc.perform(MockMvcRequestBuilders.get("/tasks/{id}", 1000))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.code", any(String.class)))
-                .andExpect(jsonPath("$.description", any(String.class)))
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
     }
 
@@ -136,34 +138,142 @@ class TaskControllerTest extends GenericTestBase {
 
         TaskDTO task = new TaskDTO("Learn spring boot", Boolean.TRUE);
 
-        RequestBuilder requestBuilder = MockMvcRequestBuilders.post("/tasks")
+        RequestBuilder postRequestBuilder = MockMvcRequestBuilders.post("/tasks")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(task));
 
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(postRequestBuilder)
                 .andExpect(status().isCreated())
                 .andExpect(header().string(LOCATION, containsString("tasks/1")));
 
         assertTrue(taskRespository.findById(1L).isPresent());
     }
 
-    // TODO: pass test
     @Test
-    void should_throw_400_badRequest_post_invalidTask() throws Exception {
-        assertTrue(taskRespository.findById(1L).isEmpty());
-
+    void should_throw_400_badRequest_post_invalid_data_task() throws Exception {
         TaskDTO task = new TaskDTO("", null);
 
-        RequestBuilder requestBuilder = MockMvcRequestBuilders.post("/tasks")
+        RequestBuilder postRequestBuilder = MockMvcRequestBuilders.post("/tasks")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(task));
 
-        mockMvc.perform(requestBuilder)
+        ErrorCode errorCode = ErrorCode.INVALID_FIELDS;
+
+        mockMvc.perform(postRequestBuilder)
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code", is(ErrorCode.INVALID_FIELDS.name())))
-                .andExpect(jsonPath("$.description", any(String.class)))
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", any(Map.class)));
 
+        assertTrue(taskRespository.findById(1L).isEmpty());
+    }
+
+    @Test
+    void should_update_a_existing_task() throws Exception {
+        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
+
+        TaskDTO taskUpdated = new TaskDTO("Learn Azure", Boolean.FALSE);
+
+        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(taskUpdated));
+
+        mockMvc.perform(putRequestBuilder).andExpect(status().isNoContent());
+
+        Task task = taskService.findById(1L);
+
+        assertEquals(1L, task.getId());
+        assertEquals(taskUpdated.content(), task.getContent());
+        assertEquals(taskUpdated.completed(), task.getCompleted());
+    }
+
+    @Test
+    void should_throw_400_badRequest_update_invalid_data_task() throws Exception {
+        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
+
+        TaskDTO taskUpdated = new TaskDTO("", Boolean.TRUE);
+
+        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(taskUpdated));
+
+        ErrorCode errorCode = ErrorCode.INVALID_FIELDS;
+
+        mockMvc.perform(putRequestBuilder)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", any(Map.class)));
+    }
+
+    @Test
+    void should_throw_404_notFound_update_nonExisting_task() throws Exception {
+        TaskDTO taskUpdated = new TaskDTO("Study to OCP Java 21", Boolean.TRUE);
+
+        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(taskUpdated));
+
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        mockMvc.perform(putRequestBuilder)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+
+        assertTrue(taskRespository.findById(1L).isEmpty());
+    }
+
+    @Test
+    void should_change_completedStatus_from_a_existing_task() throws Exception{
+        insertTaskWithIdOne("Study Math", Boolean.FALSE);
+
+        TaskCompletedDTO dto = new TaskCompletedDTO(Boolean.TRUE);
+
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto));
+
+        mockMvc.perform(patchRequestBuilder).andExpect(status().isNoContent());
+
+        assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
+    }
+
+    @Test
+    void should_throw_400_badRequest_patch_invalid_data_task() throws Exception {
+        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
+
+        TaskCompletedDTO dto = new TaskCompletedDTO(null);
+
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto));
+
+        ErrorCode errorCode = ErrorCode.INVALID_FIELDS;
+
+        mockMvc.perform(patchRequestBuilder)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", any(Map.class)));
+    }
+
+    @Test
+    void should_throw_404_notFound_patch_nonExisting_task() throws Exception {
+        TaskCompletedDTO dto = new TaskCompletedDTO(Boolean.FALSE);
+
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto));
+
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        mockMvc.perform(patchRequestBuilder)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
 
         assertTrue(taskRespository.findById(1L).isEmpty());
     }

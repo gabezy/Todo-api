@@ -1,5 +1,6 @@
 package br.com.gabezy.todoapi.services;
 
+import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
@@ -46,9 +47,9 @@ public class TaskService {
         repository.save(taskUpdate);
     }
 
-    public void changeCompletedStatus(Long taskId, Boolean completed) {
+    public void patchCompletedStatus(Long taskId, TaskCompletedDTO dto) {
         Task task = this.findById(taskId);
-        task.setCompleted(completed);
+        task.setCompleted(dto.completed());
         repository.save(task);
     }
 
