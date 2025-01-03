@@ -53,7 +53,8 @@ public class TaskService {
         repository.save(task);
     }
 
-    public void deleteTask(Long taskId) {
-        repository.deleteById(taskId);
+    public void deleteTaskById(Long taskId) {
+        Task taskDelete = this.findById(taskId);
+        repository.delete(taskDelete);
     }
 }

@@ -278,6 +278,31 @@ class TaskControllerTest extends GenericTestBase {
         assertTrue(taskRespository.findById(1L).isEmpty());
     }
 
+    @Test
+    void should_delete_a_task() throws Exception {
+        insertTaskWithIdOne("Will be delete", Boolean.TRUE);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/tasks/{id}", 1))
+                .andExpect(status().isNoContent());
+
+        assertTrue(taskRespository.findById(1L).isEmpty());
+    }
+
+    @Test
+    void should_return_204_notContent_delete_nonExisting_task() throws Exception {
+        Long invalidId = 1000L;
+
+        assertTrue(taskRespository.findById(invalidId).isEmpty());
+
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/tasks/{id}", invalidId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+    }
+
     @AfterEach
     void clean() {
         JdbcTestUtils.deleteFromTables(jdbcTemplate, "TASK");

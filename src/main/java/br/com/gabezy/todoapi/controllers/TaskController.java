@@ -59,4 +59,11 @@ public class TaskController {
         taskService.patchCompletedStatus(id, request);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> deleteTask(@PathVariable("id") Long id) {
+        taskService.deleteTaskById(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

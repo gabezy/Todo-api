@@ -194,13 +194,19 @@ class TaskServiceTest extends GenericTestBase {
 
         assertTrue(taskRespository.findById(1L).isPresent());
 
-        taskService.deleteTask(1L);
+        taskService.deleteTaskById(1L);
 
         assertFalse(taskRespository.findById(1L).isPresent());
+    }
 
-        assertFalse(taskRespository.findById(1000L).isPresent());
+    @Test
+    void should_throw_resourceNotFoundException_when_delete_task_completedStatus_by_nonExisting_id() {
+        Long invalidId = 1000L;
 
-        taskService.deleteTask(1000L);
+        assertFalse(taskRespository.findById(invalidId).isPresent());
+
+        assertThrowsExactly(ResourceNotFoundException.class,
+                () -> taskService.deleteTaskById(invalidId));
     }
 
     @AfterEach
