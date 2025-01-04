@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 
 
 @Entity
-@Table(name = "TASK")
+@Table(name = "task")
 public class Task {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false, name = "IDT_TASK")
     private Long id;
 
