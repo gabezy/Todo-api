@@ -1,3 +1,7 @@
+swagger:
+  title: TODO API
+  description: Documentação on-line da API
+
 spring:
   application:
     name: Todo-api
@@ -15,6 +19,15 @@ spring:
     user: root
     password: secretpw
     table: FLYWAY_SCHEMA_HISTORY
+springdoc:
+  swagger-ui:
+    operations-sorter: method
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  api-docs:
+    enabled: true
+    path: /api-docs
 
 logging:
   level:
