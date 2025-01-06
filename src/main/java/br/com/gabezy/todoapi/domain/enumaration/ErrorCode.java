@@ -3,9 +3,12 @@ package br.com.gabezy.todoapi.domain.enumaration;
 public enum ErrorCode {
 
     TASK_NOT_FOUND("Task not found"),
+    USER_NOT_FOUND("User not found"),
+    ROLE_NOT_FOUND("Role not found"),
+    MISSING_TOKEN("Authorization Token is missing"),
     INVALID_FIELDS("The request body has invalid fields");
 
-    private String message;
+    private final String message;
 
     ErrorCode(String message) {
         this.message = message;
