@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
+import br.com.gabezy.todoapi.domain.dto.UserFilterDTO;
 import br.com.gabezy.todoapi.domain.dto.UserInfoDTO;
 import br.com.gabezy.todoapi.domain.entity.Role;
 import br.com.gabezy.todoapi.domain.entity.User;
@@ -38,6 +39,19 @@ public class UserService {
         var user = respository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
         return maptoUserInfoDTO(user);
+    }
+
+    public List<UserInfoDTO> findAll() {
+        return respository.findAll().stream()
+                .map(this::maptoUserInfoDTO)
+                .toList();
+    }
+
+    public List<UserInfoDTO> findByFilter(UserFilterDTO dto) {
+        return respository.findByEmailOrRoleName(dto.email(), dto.roleName())
+                .stream()
+                .map(this::maptoUserInfoDTO)
+                .toList();
     }
 
     public User findByEmail(String email) {

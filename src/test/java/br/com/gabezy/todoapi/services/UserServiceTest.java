@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
+import br.com.gabezy.todoapi.domain.dto.UserFilterDTO;
 import br.com.gabezy.todoapi.domain.dto.UserInfoDTO;
 import br.com.gabezy.todoapi.domain.entity.Role;
 import br.com.gabezy.todoapi.domain.entity.User;
@@ -104,6 +105,39 @@ class UserServiceTest {
 
         assertThrowsExactly(ResourceNotFoundException.class,
                 () -> userService.findById(id));
+    }
+
+    @Test
+    void should_findAndReturnListUsersInfoDTO() {
+        when(userRepository.findAll()).thenReturn(List.of(user));
+
+        List<UserInfoDTO> result = userService.findAll();
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(user.getId(), result.get(0).id());
+        assertEquals(user.getRoles().size(), result.get(0).roles().size());
+
+        verify(userRepository).findAll();
+    }
+
+    @Test
+    void should_findAndReturnListUsersInfoDTO_byFilter() {
+        UserFilterDTO filter = new UserFilterDTO("test@example.com", RoleName.USER);
+
+        when(userRepository.findByEmailOrRoleName(filter.email(), filter.roleName()))
+                .thenReturn(List.of(user));
+
+        List<UserInfoDTO> result = userService.findByFilter(filter);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(user.getId(), result.get(0).id());
+        assertEquals(user.getRoles().size(), result.get(0).roles().size());
+
+        verify(userRepository).findByEmailOrRoleName(filter.email(), filter.roleName());
     }
 
     @Test
