@@ -1,7 +1,7 @@
 package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.domain.detail.UserDetailsImpl;
-import br.com.gabezy.todoapi.domain.dto.LoginUserDTO;
+import br.com.gabezy.todoapi.domain.dto.LoginDTO;
 import br.com.gabezy.todoapi.domain.dto.TokenDTO;
 import br.com.gabezy.todoapi.domain.entity.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,13 +38,13 @@ class AuthenticationServiceTest {
     @InjectMocks
     private AuthenticationService authenticationService;
 
-    private LoginUserDTO loginUserDTO;
+    private LoginDTO loginDTO;
 
     private User user;
 
     @BeforeEach
     void setUp() {
-        loginUserDTO = new LoginUserDTO("test@example.com", "secret");
+        loginDTO = new LoginDTO("test@example.com", "secret");
 
         user = new User();
         user.setId(1L);
@@ -64,7 +64,7 @@ class AuthenticationServiceTest {
         when(jwtTokenService.generateToken(any(UserDetails.class)))
                 .thenReturn(token);
 
-        TokenDTO tokenDTO = authenticationService.authenticate(loginUserDTO);
+        TokenDTO tokenDTO = authenticationService.authenticate(loginDTO);
 
         assertNotNull(tokenDTO);
         assertEquals(token, tokenDTO.token());

@@ -1,7 +1,7 @@
 package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.domain.detail.UserDetailsImpl;
-import br.com.gabezy.todoapi.domain.dto.LoginUserDTO;
+import br.com.gabezy.todoapi.domain.dto.LoginDTO;
 import br.com.gabezy.todoapi.domain.dto.TokenDTO;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,7 +20,7 @@ public class AuthenticationService {
         this.jwtTokenService = jwtTokenService;
     }
 
-    public TokenDTO authenticate(LoginUserDTO dto) {
+    public TokenDTO authenticate(LoginDTO dto) {
         var usernameAndPasswordAuth = new UsernamePasswordAuthenticationToken(dto.email(), dto.password());
 
         Authentication auth = authenticationManager.authenticate(usernameAndPasswordAuth);
