@@ -37,7 +37,7 @@ public class TaskService {
     }
 
     public List<Task> findByFilter(TaskFilterDTO dto) {
-        return repository.findByContentOrCompleted(dto.content(), dto.completed());
+        return repository.findTaskByContentContainingAndCompleted(dto.content(), dto.completed());
     }
 
     public void updateTask(Long taskId, TaskDTO dto) {

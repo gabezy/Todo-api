@@ -9,9 +9,9 @@ import java.util.List;
 public interface TaskRespository extends JpaRepository<Task, Long> {
 
     @Query("SELECT t FROM Task t " +
-            "WHERE LOWER(t.content) LIKE CONCAT('%', LOWER(:content), '%') " +
-            "OR t.completed = :completed "
+            "WHERE (:content IS NULL OR LOWER(t.content) LIKE CONCAT('%', LOWER(:content), '%')) " +
+            "AND (:compelted IS NULL OR t.completed = :completed)"
     )
-    List<Task> findByContentOrCompleted(String content, Boolean completed);
+    List<Task> findTaskByContentContainingAndCompleted(String content, Boolean completed);
 
 }
