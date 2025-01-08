@@ -1,3 +1,6 @@
+todo-api:
+  jwt-secret: secret
+  jwt-issuer: issuer
 spring:
   application:
     name: Todo-api
