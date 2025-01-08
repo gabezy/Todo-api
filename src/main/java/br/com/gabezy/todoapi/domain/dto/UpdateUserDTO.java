@@ -2,13 +2,11 @@ package br.com.gabezy.todoapi.domain.dto;
 
 import br.com.gabezy.todoapi.domain.entity.Role;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
-public record UserInfoDTO(
-        Long id,
+public record UpdateUserDTO(
         String email,
-        List<Role> roles,
-        OffsetDateTime createdAt
+        String password,
+        List<Role> roles
 ) {
 }
