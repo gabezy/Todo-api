@@ -1,6 +1,6 @@
 -- CREATE TABLE --
 
-CREATE TABLE task
+CREATE TABLE tasks
 (
     IDT_TASK  BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL COMMENT 'Task unique ID. Auto increment.',
     CONTENT   VARCHAR(400) NOT NULL COMMENT 'Content of the task.',
