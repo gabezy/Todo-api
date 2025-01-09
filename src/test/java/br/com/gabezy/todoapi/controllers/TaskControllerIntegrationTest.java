@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.controllers;
 
-import br.com.gabezy.todoapi.GenericTestBase;
+import br.com.gabezy.todoapi.GenericIntegrationTestBase;
+import br.com.gabezy.todoapi.domain.dto.LoginDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
@@ -8,18 +9,21 @@ import br.com.gabezy.todoapi.domain.entity.Task;
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.repositories.TaskRespository;
 import br.com.gabezy.todoapi.services.TaskService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import br.com.gabezy.todoapi.utils.AuthenticationUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.jdbc.JdbcTestUtils;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 import java.util.Map;
@@ -30,24 +34,33 @@ import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @AutoConfigureMockMvc
-class TaskControllerTest extends GenericTestBase {
+class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private AuthenticationUtils authenticationUtils;
 
     @Autowired
     private TaskRespository taskRespository;
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Autowired
     private TaskService taskService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private MockMvc mockMvc;
-
     private static final String INSERT_TASK_SCRIPT = "classpath:/scripts/task/insert_task.sql";
+
+    @BeforeEach
+    void setUp() {
+        LoginDTO loginDTO = new LoginDTO("jonh.doe@example.com", "password");
+
+        String token = authenticationUtils.generateToken(jdbcTemplate, loginDTO).token();
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .defaultRequest(MockMvcRequestBuilders.request(HttpMethod.GET, "/")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .build();
+    }
 
     @Test
     void should_return_a_task_existing_by_id() throws Exception {
@@ -305,12 +318,13 @@ class TaskControllerTest extends GenericTestBase {
 
     @AfterEach
     void clean() {
-        JdbcTestUtils.deleteFromTables(jdbcTemplate, "TASK");
+        JdbcTestUtils.deleteFromTables(jdbcTemplate, "tasks");
+        authenticationUtils.cleanUpAssistantTables(jdbcTemplate);
     }
 
     private void insertTaskWithIdOne(String content, Boolean completed) {
         int completedStatus = completed.equals(Boolean.TRUE) ? 1 : 0;
-        String sql = String.format("INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES (1, '%s', %d)", content, completedStatus);
+        String sql = String.format("INSERT INTO tasks (IDT_TASK, CONTENT, COMPLETED) VALUES (1, '%s', %d)", content, completedStatus);
         jdbcTemplate.execute(sql);
     }
 

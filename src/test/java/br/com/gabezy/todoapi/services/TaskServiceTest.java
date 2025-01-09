@@ -1,188 +1,214 @@
 package br.com.gabezy.todoapi.services;
 
-import br.com.gabezy.todoapi.GenericTestBase;
 import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Task;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.TaskRespository;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.jdbc.JdbcTestUtils;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-class TaskServiceTest extends GenericTestBase {
+@ExtendWith(MockitoExtension.class)
+class TaskServiceTest {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
+    @Mock
     private TaskRespository taskRespository;
 
-    @Autowired
+    @InjectMocks
     private TaskService taskService;
 
-    private static final String INSERT_TASK_SCRIPT = "classpath:/scripts/task/insert_task.sql";
+    private Task task1;
+    private Task task2;
+    private Task task3;
+
+    @BeforeEach
+    void setUp() {
+        task1 = new Task();
+        task1.setId(1L);
+        task1.setContent("Learn JUnit 5");
+        task1.setCompleted(Boolean.FALSE);
+
+        task2 = new Task();
+        task2.setId(2L);
+        task2.setContent("learn Docker");
+        task2.setCompleted(Boolean.TRUE);
+
+        task3 = new Task();
+        task2.setId(3L);
+        task3.setContent("Deploy TODO app");
+        task3.setCompleted(Boolean.FALSE);
+    }
+
 
     @Test
     void should_create_new_task() {
-        assertFalse(taskRespository.findById(1L).isPresent());
+        when(taskRespository.save(any(Task.class))).thenReturn(task1);
 
-        TaskDTO newTask = new TaskDTO("Learn Spring Boot", Boolean.FALSE);
+        TaskDTO newTask = new TaskDTO("Learn JUnit 5", Boolean.FALSE);
 
-        Task task = taskService.createTask(newTask);
+        Task result = taskService.createTask(newTask);
 
-        var taskOptional = taskRespository.findById(1L);
+        assertNotNull(result);
+        assertEquals(task1.getContent(), result.getContent());
+        assertEquals(task1.getCompleted(), result.getCompleted());
 
-        assertTrue(taskOptional.isPresent());
-        assertEquals(taskOptional.get().getContent(), task.getContent());
-        assertEquals(taskOptional.get().getCompleted(), task.getCompleted());
+        verify(taskRespository).save(any(Task.class));
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void should_find_all_tasks() {
-        List<Task> tasks = taskService.findAll();
-        List<Task> tasksPersisted = taskRespository.findAll();
+        when(taskRespository.findAll()).thenReturn(List.of(task1, task2));
 
-        assertNotNull(tasks);
-        assertFalse(tasks.isEmpty());
+        List<Task> result = taskService.findAll();
 
-        for (int i = 0; i < tasks.size(); i++) {
-            assertEquals(tasksPersisted.get(i).getId(), tasks.get(i).getId());
-            assertEquals(tasksPersisted.get(i).getContent(), tasks.get(i).getContent());
-            assertEquals(tasksPersisted.get(i).getCompleted(), tasks.get(i).getCompleted());
-        }
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(task -> task.getCompleted().equals(Boolean.TRUE)));
+        assertTrue(result.stream().anyMatch(task ->task.getCompleted().equals(Boolean.FALSE)));
+
+        verify(taskRespository).findAll();
     }
 
     @Test
     void should_find_task_by_id() {
-        insertTaskWithIdOne("Learn Spring Data", Boolean.TRUE);
+        Long id = 1L;
 
-        Task task = taskService.findById(1L);
+        when(taskRespository.findById(id)).thenReturn(Optional.of(task1));
 
-        assertNotNull(task);
-        assertEquals(Boolean.TRUE, task.getCompleted());
-        assertEquals("Learn Spring Data", task.getContent());
+        Task result = taskService.findById(id);
+
+        assertNotNull(result);
+        assertEquals(task1.getContent(), result.getContent());
+        assertEquals(task1.getCompleted(), result.getCompleted());
+
+        verify(taskRespository).findById(id);
     }
 
     @Test
     void should_throw_resourceNotFoundException_when_find_task_by_invalid_id() {
-        Long invalidId = 1000L;
-        assertFalse(taskRespository.findById(invalidId).isPresent());
+        Long id = 1000L;
+
+        when(taskRespository.findById(id)).thenReturn(Optional.empty());
 
         assertThrowsExactly(ResourceNotFoundException.class,
-                () -> taskService.findById(invalidId));
+                () -> taskService.findById(id));
+
+        verify(taskRespository).findById(id);
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    void should_find_tasks_by_filter() {
-        TaskFilterDTO taskFilter = new TaskFilterDTO("Learn", Boolean.FALSE);
+    void should_findAndReturnListTasks_byPartialContentFilter() {
+        TaskFilterDTO filter = new TaskFilterDTO("Learn", null);
 
-        List<Task> tasks = taskRespository.findByContentOrCompleted(taskFilter.content(), taskFilter.completed());
-        List<Task> tasksFiltered = taskService.findByFilter(taskFilter);
+        when(taskRespository.findTaskByContentContainingAndCompleted(filter.content(), filter.completed()))
+                .thenReturn(List.of(task1, task2));
 
-        taskFilter = new TaskFilterDTO("jira", null);
+        List<Task> result = taskService.findByFilter(filter);
 
-        List<Task> tasks2 = taskRespository.findByContentOrCompleted(taskFilter.content(), taskFilter.completed());
-        List<Task> tasksFiltered2 = taskService.findByFilter(taskFilter);
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(task -> task.getCompleted().equals(Boolean.TRUE)));
+        assertTrue(result.stream().anyMatch(task ->task.getCompleted().equals(Boolean.FALSE)));
 
-        taskFilter = new TaskFilterDTO(null, Boolean.TRUE);
+        verify(taskRespository).findTaskByContentContainingAndCompleted(filter.content(), filter.completed());
+    }
 
-        List<Task> tasks3 = taskRespository.findByContentOrCompleted(taskFilter.content(), taskFilter.completed());
-        List<Task> tasksFiltered3 = taskService.findByFilter(taskFilter);
+    @Test
+    void should_findAndReturnListTasks_byPartialCompletedTrueFilter() {
+        TaskFilterDTO filter = new TaskFilterDTO(null, Boolean.TRUE);
 
-        assertAll(
-                () -> assertFalse(tasks.isEmpty()),
-                () -> assertFalse(tasksFiltered.isEmpty()),
-                () -> assertEquals(tasks.size(), tasksFiltered.size()),
-                () -> assertEquals(6, tasks.size()),
-                () -> assertEquals(6, tasksFiltered.size()),
-                () -> assertEquals(1L, tasksFiltered.get(0).getId()),
-                () -> assertEquals("Learn Docker", tasksFiltered.get(0).getContent()),
-                () -> assertEquals(Boolean.FALSE, tasksFiltered.get(0).getCompleted()),
-                //
-                () -> assertFalse(tasks2.isEmpty()),
-                () -> assertFalse(tasksFiltered2.isEmpty()),
-                () -> assertEquals(2, tasks2.size()),
-                () -> assertEquals(2, tasksFiltered2.size()),
-                () -> assertEquals(3L, tasksFiltered2.get(0).getId()),
-                () -> assertEquals("Fix jira issue #211321", tasksFiltered2.get(0).getContent()),
-                () -> assertEquals(Boolean.TRUE, tasksFiltered2.get(0).getCompleted()),
-                //
-                () -> assertFalse(tasks3.isEmpty()),
-                () -> assertFalse(tasksFiltered3.isEmpty()),
-                () -> assertEquals(2, tasks3.size()),
-                () -> assertEquals(2, tasksFiltered3.size()),
-                () -> assertEquals(2L, tasksFiltered3.get(0).getId()),
-                () -> assertEquals("Learn Java", tasksFiltered3.get(0).getContent()),
-                () -> assertEquals(Boolean.TRUE, tasksFiltered3.get(0).getCompleted())
-        );
+        when(taskRespository.findTaskByContentContainingAndCompleted(filter.content(), filter.completed()))
+                .thenReturn(List.of(task2));
+
+        List<Task> result = taskService.findByFilter(filter);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.stream().allMatch(task -> task.getCompleted().equals(Boolean.TRUE)));
+        assertTrue(result.stream().anyMatch(task -> task.getContent().equals(task2.getContent())));
+
+        verify(taskRespository).findTaskByContentContainingAndCompleted(filter.content(), filter.completed());
+    }
+
+    @Test
+    void should_findAndReturnListTasks_byPartialCompletedFalseFilter() {
+        TaskFilterDTO filter = new TaskFilterDTO(null, Boolean.FALSE);
+
+        when(taskRespository.findTaskByContentContainingAndCompleted(filter.content(), filter.completed()))
+                .thenReturn(List.of(task1, task3));
+
+        List<Task> result = taskService.findByFilter(filter);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.stream().allMatch(task -> task.getCompleted().equals(Boolean.FALSE)));
+        assertTrue(result.stream().anyMatch(task -> task.getContent().equals(task1.getContent())));
+        assertTrue(result.stream().anyMatch(task -> task.getContent().equals(task3.getContent())));
+
+        verify(taskRespository).findTaskByContentContainingAndCompleted(filter.content(), filter.completed());
     }
 
     @Test
     void should_update_existing_task() {
-        insertTaskWithIdOne("Learn Spring Data", Boolean.TRUE);
 
-        assertTrue(taskRespository.findById(1L).isPresent());
+        when(taskRespository.findById(1L)).thenReturn(Optional.of(task1));
+        when(taskRespository.save(any())).thenReturn(mock(Task.class));
 
         TaskDTO taskUpdate = new TaskDTO("Migrate system to Spring boot", Boolean.FALSE);
 
         taskService.updateTask(1L, taskUpdate);
 
-        Task task = taskService.findById(1L);
-
-        assertEquals(taskUpdate.content(), task.getContent());
-        assertEquals(taskUpdate.completed(), task.getCompleted());
+        assertEquals(taskUpdate.content(), task1.getContent());
+        assertEquals(taskUpdate.completed(), task1.getCompleted());
+        verify(taskRespository).findById(1L);
+        verify(taskRespository).save(any(Task.class));
     }
 
     @Test
     void should_throw_resourceNotFoundException_when_find_update_task_by_invalid_id() {
         Long invalidId = 1L;
-        assertFalse(taskRespository.findById(invalidId).isPresent());
+
+        when(taskRespository.findById(invalidId)).thenReturn(Optional.empty());
 
         assertThrowsExactly(ResourceNotFoundException.class,
                 () -> taskService.updateTask(invalidId, new TaskDTO("some content", Boolean.FALSE)));
+
+        verify(taskRespository).findById(invalidId);
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void should_change_task_completedStatus() {
-        Optional<Task> task1 = taskRespository.findById(1L);
-        Optional<Task> task2 = taskRespository.findById(2L);
+        when(taskRespository.findById(anyLong())).thenReturn(Optional.of(task1), Optional.of(task2));
 
-        assertTrue(task1.isPresent());
-        assertEquals(Boolean.FALSE, task1.get().getCompleted());
-
-        assertTrue(task2.isPresent());
-        assertEquals(Boolean.TRUE, task2.get().getCompleted());
+        when(taskRespository.save(any(Task.class))).thenReturn(mock(Task.class), mock(Task.class));
 
         taskService.patchCompletedStatus(1L, new TaskCompletedDTO(Boolean.TRUE));
         taskService.patchCompletedStatus(2L, new TaskCompletedDTO(Boolean.FALSE));
 
-        assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
-        assertEquals(Boolean.FALSE, taskService.findById(2L).getCompleted());
+        assertEquals(Boolean.TRUE, task1.getCompleted());
+        assertEquals(Boolean.FALSE, task2.getCompleted());
 
-        taskService.patchCompletedStatus(1L, new TaskCompletedDTO(Boolean.TRUE));
-        assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
+        verify(taskRespository, times(2)).findById(anyLong());
+        verify(taskRespository, times(2)).save(any(Task.class));
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     void should_throw_resourceNotFoundException_when_change_task_completedStatus_by_invalid_id() {
         Long invalidId = 1000L;
-        Optional<Task> task1 = taskRespository.findById(invalidId);
 
-        assertFalse(task1.isPresent());
+        when(taskRespository.findById(invalidId)).thenReturn(Optional.empty());
 
         assertThrowsExactly(ResourceNotFoundException.class,
                 () -> taskService.patchCompletedStatus(invalidId, new TaskCompletedDTO(Boolean.FALSE)));
@@ -190,34 +216,23 @@ class TaskServiceTest extends GenericTestBase {
 
     @Test
     void should_delete_task_by_id() {
-        insertTaskWithIdOne("some task to do", Boolean.FALSE);
-
-        assertTrue(taskRespository.findById(1L).isPresent());
+        when(taskRespository.findById(1L)).thenReturn(Optional.of(task1));
+        doNothing().when(taskRespository).delete(task1);
 
         taskService.deleteTaskById(1L);
 
-        assertFalse(taskRespository.findById(1L).isPresent());
+        verify(taskRespository).findById(1L);
+        verify(taskRespository).delete(task1);
     }
 
     @Test
     void should_throw_resourceNotFoundException_when_delete_task_completedStatus_by_nonExisting_id() {
         Long invalidId = 1000L;
 
-        assertFalse(taskRespository.findById(invalidId).isPresent());
+        when(taskRespository.findById(invalidId)).thenReturn(Optional.empty());
 
         assertThrowsExactly(ResourceNotFoundException.class,
                 () -> taskService.deleteTaskById(invalidId));
-    }
-
-    @AfterEach
-    void clean() {
-        JdbcTestUtils.deleteFromTables(jdbcTemplate, "TASK");
-    }
-
-    private void insertTaskWithIdOne(String content, Boolean completed) {
-        int completedStatus = completed.equals(Boolean.TRUE) ? 1 : 0;
-        String sql = String.format("INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES (1, '%s', %d)", content, completedStatus);
-        jdbcTemplate.execute(sql);
     }
 
 }

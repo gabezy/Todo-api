@@ -139,7 +139,7 @@ class UserServiceTest {
     }
 
     @Test
-    void should_findAndReturnAllUsers_whenEamilAndRoleNameAreNull() {
+    void should_findAndReturnAllUsers_whenEmailAndRoleNameAreNull() {
         UserFilterDTO filter = new UserFilterDTO(null, null);
 
         when(userRepository.findByEmailContainingAndRoleName(filter.email(), filter.roleName()))

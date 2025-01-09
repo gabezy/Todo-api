@@ -1,4 +1,4 @@
-INSERT INTO TASK (IDT_TASK, CONTENT, COMPLETED) VALUES
+INSERT INTO tasks (IDT_TASK, CONTENT, COMPLETED) VALUES
     (1, 'Learn Docker', 0),
     (2, 'Learn Java', 1),
     (3, 'Fix jira issue #211321', 1),
