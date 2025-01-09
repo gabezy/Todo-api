@@ -31,7 +31,8 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        var error = new ResponseError(ErrorCode.TASK_NOT_FOUND.name(), ex.getMessage(), Collections.emptyMap());
+        ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
+        var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
         return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
     }
 

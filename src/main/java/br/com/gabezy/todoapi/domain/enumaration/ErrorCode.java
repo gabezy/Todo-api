@@ -1,5 +1,7 @@
 package br.com.gabezy.todoapi.domain.enumaration;
 
+import java.util.Arrays;
+
 public enum ErrorCode {
 
     TASK_NOT_FOUND("Task not found"),
@@ -16,5 +18,12 @@ public enum ErrorCode {
 
     public String getMessage() {
         return message;
+    }
+
+    public static ErrorCode getErrorCodeByMessage(String message) {
+        return Arrays.stream(ErrorCode.values())
+                .filter(errorCode -> errorCode.message.equals(message))
+                .findFirst()
+                .orElseThrow(RuntimeException::new);
     }
 }
