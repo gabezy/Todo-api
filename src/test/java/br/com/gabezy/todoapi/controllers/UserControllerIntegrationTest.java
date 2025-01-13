@@ -178,7 +178,7 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
     @Test
     @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
     @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
-    void shouldNot_updateDifferentUserAndReturn406NoAcceptableStatus() throws Exception {
+    void shouldNot_updateDifferentUserAndReturn403ForbiddenStatus() throws Exception {
         String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
 
         UpdateUserDTO updateUserDTO = new UpdateUserDTO("newemail@example.com", "newPassword", List.of(RoleName.ADMINISTRATOR));
@@ -198,9 +198,51 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
+    @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
+    void shouldNot_updateWithInvalidInformationAndReturn400BadRequestStatus() throws Exception {
+        String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
+
+        UpdateUserDTO updateUserDTO = new UpdateUserDTO("newemai", "", List.of());
+
+        RequestBuilder putRequest = MockMvcRequestBuilders.put("/users/{id}", 10)
+                .header(AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateUserDTO));
+
+        ErrorCode errorCode = ErrorCode.INVALID_FIELDS;
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", aMapWithSize(3)));
+    }
+
+    @Test
+    @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
+    void shouldNot_updateWithNonExistingIdAndReturn404NotFoudStatus() throws Exception {
+        String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
+
+        UpdateUserDTO updateUserDTO = new UpdateUserDTO("newemail@example.com", "newPassword", List.of(RoleName.ADMINISTRATOR));
+
+        RequestBuilder putRequest = MockMvcRequestBuilders.put("/users/{id}", 10)
+                .header(AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateUserDTO));
+
+        ErrorCode errorCode = ErrorCode.USER_NOT_FOUND;
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+    }
+
+    @Test
     @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
     @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
-    void shouldNot_updateDifferentUserAndReturn406NoAcceptableStatusWithAdminToken() throws Exception {
+    void shouldNot_updateDifferentUserAndReturn403ForbiddenStatusWithAdminToken() throws Exception {
         String token = authenticationUtils.generateTokenForAdministrator(jdbcTemplate, loginDTO).token();
 
         UpdateUserDTO updateUserDTO = new UpdateUserDTO("newemail@example.com", "newPassword", List.of(RoleName.ADMINISTRATOR));
@@ -239,7 +281,7 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
     @Test
     @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
     @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
-    void shouldNot_deleteDifferentUserAndReturn406NoAcceptableStatus() throws Exception {
+    void shouldNot_deleteDifferentUserAndReturn403ForbiddenStatus() throws Exception {
         assertTrue(userRespository.findById(10L).isPresent());
 
         String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
@@ -261,7 +303,7 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
     @Test
     @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
     @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
-    void shouldNot_deleteDifferentUserAndReturn406NoAcceptableStatusWithAdminToken() throws Exception {
+    void shouldNot_deleteDifferentUserAndReturn403ForbiddenStatusWithAdminToken() throws Exception {
         assertTrue(userRespository.findById(10L).isPresent());
 
         String token = authenticationUtils.generateTokenForAdministrator(jdbcTemplate, loginDTO).token();
@@ -278,6 +320,24 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
 
         assertTrue(userRespository.findById(10L).isPresent());
+    }
+
+    @Test
+    @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
+    void shouldNot_deleteWithNonExistingIdAndReturn404NotFound() throws Exception {
+        String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
+
+        RequestBuilder deleteRequest = MockMvcRequestBuilders.delete("/users/{id}", 1000)
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        ErrorCode errorCode = ErrorCode.USER_NOT_FOUND;
+
+        mockMvc.perform(deleteRequest)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+
     }
 
 }
