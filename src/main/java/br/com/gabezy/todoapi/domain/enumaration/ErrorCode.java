@@ -8,7 +8,9 @@ public enum ErrorCode {
     USER_NOT_FOUND("User not found"),
     ROLE_NOT_FOUND("Role not found"),
     MISSING_TOKEN("Authorization Token is missing"),
-    INVALID_FIELDS("The request body has invalid fields");
+    INVALID_FIELDS("The request body has invalid fields"),
+    USER_NOT_AUTHENTICATED("User not authenticated"),
+    USER_NOT_AUTHORIZED("User not authorized");
 
     private final String message;
 

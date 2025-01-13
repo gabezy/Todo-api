@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.config.expectionhandler;
 
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
+import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import org.springframework.http.*;
 import org.springframework.validation.FieldError;
@@ -34,6 +35,13 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
         var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
         return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Object> handleInvalidCredentialsException(InvalidCredentialsException ex, WebRequest request) {
+        ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
+        var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
+        return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
     }
 
     @Override

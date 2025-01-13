@@ -1,5 +1,6 @@
 package br.com.gabezy.todoapi.config.security;
 
+import br.com.gabezy.todoapi.domain.enumaration.RoleName;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,8 +27,7 @@ public class SecurityConfig {
     }
 
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api-docs/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/swagger-ui/index.html",
-            "/users/login", "/users/"
+            "/api-docs/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/swagger-ui/index.html"
     };
 
     @Bean
@@ -39,7 +39,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(request ->
                     request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                            .requestMatchers(HttpMethod.POST, "/auth").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/auth", "/users").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/users/{id}", "/users").hasAnyAuthority(RoleName.ADMINISTRATOR.name())
                             .anyRequest().authenticated()
                 )
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)

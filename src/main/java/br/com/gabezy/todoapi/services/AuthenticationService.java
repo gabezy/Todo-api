@@ -30,5 +30,4 @@ public class AuthenticationService {
         return new TokenDTO(jwtTokenService.generateToken(userDetails));
     }
 
-
 }
