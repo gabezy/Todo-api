@@ -2,8 +2,8 @@ package br.com.gabezy.todoapi.services;
 
 import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UpdateUserDTO;
-import br.com.gabezy.todoapi.domain.dto.UserFilterDTO;
 import br.com.gabezy.todoapi.domain.dto.UserDTO;
+import br.com.gabezy.todoapi.domain.dto.UserFilterDTO;
 import br.com.gabezy.todoapi.domain.entity.Role;
 import br.com.gabezy.todoapi.domain.entity.User;
 import br.com.gabezy.todoapi.domain.enumaration.RoleName;
@@ -15,11 +15,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,27 +55,29 @@ class UserServiceTest {
 
         userRole = new Role();
         userRole.setName(RoleName.USER);
+        userRole.setId(1L);
 
         user = new User();
         user.setId(1L);
         user.setEmail("john.doe@example.com");
         user.setPassword(encodedPassword);
-        user.setRoles(List.of(userRole));
+        user.setRoles(new ArrayList<>(List.of(userRole)));
 
         adminRole = new Role();
+        adminRole.setId(2L);
         adminRole.setName(RoleName.ADMINISTRATOR);
 
         admin = new User();
         admin.setId(2L);
         admin.setEmail("jane.doe@example.com");
         admin.setPassword(encodedPassword);
-        admin.setRoles(List.of(adminRole));
+        admin.setRoles(new ArrayList<>(List.of(adminRole)));
 
         adminAndUser = new User();
         adminAndUser.setId(3L);
         adminAndUser.setEmail("joshua.maven@example.com");
         adminAndUser.setPassword(encodedPassword);
-        adminAndUser.setRoles(List.of(userRole, adminRole));
+        adminAndUser.setRoles(new ArrayList<>(List.of(userRole, adminRole)));
     }
 
     @Test
@@ -254,10 +257,15 @@ class UserServiceTest {
     void should_findUserByIdAndUpdateEmailAndPasswordAndRole() {
         Long id = 1L;
 
-        UpdateUserDTO dto = new UpdateUserDTO("newemail@example.com", "newpassword", List.of(adminRole));
+        UpdateUserDTO dto = new UpdateUserDTO("newemail@example.com", "newpassword", List.of(RoleName.ADMINISTRATOR));
 
         String newEncodedPassword = "encondednewpassword";
+
+        List<Role> roles = new ArrayList<>();
+        roles.add(adminRole);
+
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(roleService.findByName(RoleName.ADMINISTRATOR)).thenReturn(adminRole);
         when(passwordEncoder.encode(dto.password())).thenReturn(newEncodedPassword);
 
         userService.update(id, dto);
@@ -268,12 +276,13 @@ class UserServiceTest {
 
         verify(userRepository).findById(id);
         verify(passwordEncoder).encode(dto.password());
+        verify(roleService).findByName(RoleName.ADMINISTRATOR);
     }
 
     @Test
     void should_throw_resourceNotFoundException_updateNonExistingUser() {
         Long id = 1L;
-        UpdateUserDTO dto = new UpdateUserDTO("newemail@example.com", "newpassword", List.of(adminRole));
+        UpdateUserDTO dto = new UpdateUserDTO("newemail@example.com", "newpassword", List.of(RoleName.ADMINISTRATOR));
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
@@ -283,7 +292,16 @@ class UserServiceTest {
 
     @Test
     void should_deleteUserByValidId() {
+        Authentication auth = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getPrincipal()).thenReturn(user.getEmail());
 
         doNothing().when(userRepository).delete(any(User.class));
 

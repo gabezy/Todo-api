@@ -23,7 +23,7 @@ public class User {
     @Column(nullable = false, name = "CREATED_AT")
     private OffsetDateTime createdAt;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinTable(name = "user_role",
             joinColumns = @JoinColumn(name = "IDT_USER"),
             inverseJoinColumns = @JoinColumn(name = "IDT_ROLE"))

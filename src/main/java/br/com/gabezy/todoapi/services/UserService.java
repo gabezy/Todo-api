@@ -8,12 +8,16 @@ import br.com.gabezy.todoapi.domain.entity.Role;
 import br.com.gabezy.todoapi.domain.entity.User;
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.domain.enumaration.RoleName;
+import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.UserRespository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -22,8 +26,8 @@ public class UserService {
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRespository userRespository, RoleService roleService, PasswordEncoder passwordEncoder) {
-        this.repository = userRespository;
+    public UserService(UserRespository repository, RoleService roleService, PasswordEncoder passwordEncoder) {
+        this.repository = repository;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -38,19 +42,19 @@ public class UserService {
 
     public UserDTO findById(Long id) {
         User user = this.findUserById(id);
-        return maptoUserInfoDTO(user);
+        return mapToUserInfoDTO(user);
     }
 
     public List<UserDTO> findAll() {
         return repository.findAll().stream()
-                .map(this::maptoUserInfoDTO)
+                .map(this::mapToUserInfoDTO)
                 .toList();
     }
 
     public List<UserDTO> findByFilter(UserFilterDTO dto) {
         return repository.findByEmailContainingAndRoleName(dto.email(), dto.roleName())
                 .stream()
-                .map(this::maptoUserInfoDTO)
+                .map(this::mapToUserInfoDTO)
                 .toList();
     }
 
@@ -62,15 +66,23 @@ public class UserService {
     public void update(Long id, UpdateUserDTO dto) {
         User user = this.findUserById(id);
 
+        validateUserAccess(user);
+
+        List<Role> roles = getRolesByRoleNames(dto.roles());
+        String endocodedPassword = passwordEncoder.encode(dto.password());
+
         user.setEmail(dto.email());
-        user.setPassword(passwordEncoder.encode(dto.password()));
-        user.setRoles(dto.roles());
+        user.setPassword(endocodedPassword);
+
+        user.getRoles().clear();
+        user.getRoles().addAll(roles);
 
         repository.save(user);
     }
 
     public void delete(Long id) {
         User user = this.findUserById(id);
+        validateUserAccess(user);
         repository.delete(user);
     }
 
@@ -83,8 +95,29 @@ public class UserService {
         return List.of(roleService.findByName(RoleName.USER));
     }
 
-    private UserDTO maptoUserInfoDTO(User user) {
+    private UserDTO mapToUserInfoDTO(User user) {
         return new UserDTO(user.getId(), user.getEmail(), user.getRoles(), user.getCreatedAt());
+    }
+
+    private List<Role> getRolesByRoleNames(List<RoleName> roleNames) {
+        return roleNames.stream()
+                .map(roleService::findByName)
+                .toList();
+    }
+
+    private void validateUserAccess(User user) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (Objects.isNull(authentication) || !authentication.isAuthenticated()) {
+            throw new InvalidCredentialsException(ErrorCode.USER_NOT_AUTHENTICATED);
+        }
+
+        String authenticadedUserEmail = (String) authentication.getPrincipal();
+
+        if (!authenticadedUserEmail.equals(user.getEmail())) {
+            throw new InvalidCredentialsException(ErrorCode.USER_NOT_AUTHORIZED);
+        }
+
     }
 
 }
