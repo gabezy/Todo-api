@@ -54,7 +54,7 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     void setUp() {
         LoginDTO loginDTO = new LoginDTO("jonh.doe@example.com", "password");
 
-        String token = authenticationUtils.generateToken(jdbcTemplate, loginDTO).token();
+        String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .defaultRequest(MockMvcRequestBuilders.request(HttpMethod.GET, "/")
@@ -68,7 +68,7 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
 
         assertTrue(taskRespository.findById(1L).isPresent());
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/{id}", 1))
+        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.id", is(1)))
