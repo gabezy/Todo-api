@@ -2,8 +2,8 @@ package br.com.gabezy.todoapi.controllers;
 
 import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
+import br.com.gabezy.todoapi.domain.dto.TaskDataDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
-import br.com.gabezy.todoapi.domain.entity.Task;
 import br.com.gabezy.todoapi.services.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/tasks")
 @Tag(name = "Task", description = "Operation relate to task")
-public class TaskController implements GenericCrudController<Task, Long, TaskDTO, TaskDTO> {
+public class TaskController implements GenericCrudController<TaskDataDTO, Long, TaskDTO, TaskDTO> {
 
     private final TaskService taskService;
 
@@ -46,7 +46,7 @@ public class TaskController implements GenericCrudController<Task, Long, TaskDTO
     @Override
     @ApiResponse(responseCode = "200", description = "Successfully retrieve all task")
     @Operation(summary = "Get all tasks", description = "Get list of all tasks")
-    public ResponseEntity<List<Task>> findAll() {
+    public ResponseEntity<List<TaskDataDTO>> findAll() {
         return ResponseEntity.ok(taskService.findAll());
     }
 
@@ -56,14 +56,14 @@ public class TaskController implements GenericCrudController<Task, Long, TaskDTO
             @ApiResponse(responseCode = "200", description = "Task successfully retrieved"),
             @ApiResponse(responseCode = "404", description = "Task not found (ID doesn't exist)")
     })
-    public ResponseEntity<Task> findById(Long id) {
+    public ResponseEntity<TaskDataDTO> findById(Long id) {
         return ResponseEntity.ok(taskService.findById(id));
     }
 
     @GetMapping(value = "/filter", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Get tasks by filter", description = "Get list of tasks based on filter")
     @ApiResponse(responseCode = "200", description = "Successfully retrieve all task")
-    public ResponseEntity<List<Task>> findByFilter(TaskFilterDTO filter) {
+    public ResponseEntity<List<TaskDataDTO>> findByFilter(TaskFilterDTO filter) {
         return ResponseEntity.ok(taskService.findByFilter(filter));
     }
 

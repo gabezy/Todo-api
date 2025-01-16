@@ -2,12 +2,13 @@ package br.com.gabezy.todoapi.domain.entity;
 
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +23,9 @@ public class User {
 
     @Column(nullable = false, name = "CREATED_AT")
     private OffsetDateTime createdAt;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Task> tasks;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinTable(name = "user_role",
@@ -63,6 +67,14 @@ public class User {
 
     public void setRoles(List<Role> roles) {
         this.roles = roles;
+    }
+
+    public List<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<Task> tasks) {
+        this.tasks = tasks;
     }
 
     @PrePersist

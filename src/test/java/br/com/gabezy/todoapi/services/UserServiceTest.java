@@ -1,5 +1,6 @@
 package br.com.gabezy.todoapi.services;
 
+import br.com.gabezy.todoapi.domain.detail.UserDetailsImpl;
 import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UpdateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UserDTO;
@@ -20,7 +21,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -293,6 +297,7 @@ class UserServiceTest {
     @Test
     void should_deleteUserByValidId() {
         Authentication auth = mock(Authentication.class);
+        UserDetailsImpl userDetails = mock(UserDetailsImpl.class);
         SecurityContext securityContext = mock(SecurityContext.class);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
@@ -301,12 +306,17 @@ class UserServiceTest {
         SecurityContextHolder.setContext(securityContext);
 
         when(auth.isAuthenticated()).thenReturn(true);
-        when(auth.getPrincipal()).thenReturn(user.getEmail());
+        when(auth.getPrincipal()).thenReturn(userDetails);
+        when(userDetails.getUsername()).thenReturn(user.getEmail());
 
         doNothing().when(userRepository).delete(any(User.class));
 
         userService.delete(1L);
 
+        verify(securityContext).getAuthentication();
+        verify(auth).isAuthenticated();
+        verify(auth).getPrincipal();
+        verify(userDetails).getUsername();
         verify(userRepository).findById(1L);
         verify(userRepository).delete(user);
     }

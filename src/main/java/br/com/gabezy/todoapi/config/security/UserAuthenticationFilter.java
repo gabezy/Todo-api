@@ -60,7 +60,7 @@ public class UserAuthenticationFilter extends OncePerRequestFilter {
 
         UserDetails userDetails = new UserDetailsImpl(user);
 
-        return new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities());
+        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
     }
 
 }

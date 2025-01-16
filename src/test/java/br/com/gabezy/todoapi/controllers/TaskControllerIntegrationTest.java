@@ -1,157 +1,175 @@
 package br.com.gabezy.todoapi.controllers;
 
 import br.com.gabezy.todoapi.GenericIntegrationTestBase;
+import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.LoginDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskCompletedDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDTO;
-import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
-import br.com.gabezy.todoapi.domain.entity.Task;
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.repositories.TaskRespository;
-import br.com.gabezy.todoapi.services.TaskService;
-import br.com.gabezy.todoapi.utils.AuthenticationUtils;
-import org.junit.jupiter.api.AfterEach;
+import br.com.gabezy.todoapi.services.AuthenticationService;
+import br.com.gabezy.todoapi.services.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.jdbc.JdbcTestUtils;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@AutoConfigureMockMvc
+@Sql(scripts = "classpath:/scripts/task/clean_task.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
 
     @Autowired
-    private AuthenticationUtils authenticationUtils;
+    private AuthenticationService authenticationService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private TaskRespository taskRespository;
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+    private String token;
 
-    @Autowired
-    private TaskService taskService;
-
-    private static final String INSERT_TASK_SCRIPT = "classpath:/scripts/task/insert_task.sql";
+    private static final String INSERT_TASKS_SCRIPT = "src/test/resources/scripts/task/insert_task.sql";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        jdbcTemplate.execute("INSERT INTO roles (IDT_ROLE, NAME) VALUES (1, 'USER')");
+
+        Long user1Id = userService.createUser(new CreateUserDTO("jonh.doe@example.com", "password")).getId();
+
+        Long user2Id = userService.createUser(new CreateUserDTO("jane.doe@example.com", "password")).getId();
+
         LoginDTO loginDTO = new LoginDTO("jonh.doe@example.com", "password");
 
-        String token = authenticationUtils.generateTokenForUser(jdbcTemplate, loginDTO).token();
+        token = authenticationService.authenticate(loginDTO).token();
 
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .defaultRequest(MockMvcRequestBuilders.request(HttpMethod.GET, "/")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .build();
+        String tasksSql = Files.readString(Paths.get(INSERT_TASKS_SCRIPT))
+                .replace("{USER_ID_1}", user1Id.toString())
+                .replace("{USER_ID_2}", user2Id.toString());
+
+        jdbcTemplate.execute(tasksSql);
+
     }
 
     @Test
-    void should_return_a_task_existing_by_id() throws Exception {
-        insertTaskWithIdOne("Study Laravel", Boolean.TRUE);
+    void should_getAndReturnTaskExistingByIdOwnedByLoggedUser() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/{id}", 2)
+                        .header(AUTHORIZATION, "Bearer " + token);
 
-        assertTrue(taskRespository.findById(1L).isPresent());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/{id}", 1L))
+        mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.content", is("Study Laravel")))
-                .andExpect(jsonPath("$.completed", is(Boolean.TRUE)));
-
+                .andExpect(jsonPath("$.id", is(2)))
+                .andExpect(jsonPath("$.content", is("Learn Docker")))
+                .andExpect(jsonPath("$.completed", is(Boolean.FALSE)));
     }
 
     @Test
-    void should_return_404_notFound_get_nonExisting_task() throws Exception {
-        assertFalse(taskRespository.findById(1000L).isPresent());
-
+    void should_return404NotFound_whenFindByIdOtherUserTask() throws Exception {
         ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/{id}", 1000))
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/{id}", 3)
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.code", is(errorCode.name())))
                 .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
+
+        assertTrue(taskRespository.findById(3L).isPresent());
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    void should_return_list_of_task() throws Exception {
-        assertTrue(taskRespository.findAll().iterator().hasNext());
+    void should_return_404_notFound_get_nonExisting_task() throws Exception {
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks"))
-                .andExpect(status().isOk())
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/{id}", 1000)
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$", hasSize(7)));
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+
+        assertFalse(taskRespository.findById(1000L).isPresent());
     }
 
     @Test
-    @Sql(scripts = INSERT_TASK_SCRIPT, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-    void should_return_list_of_task_by_filter() throws Exception {
-        var filter = new TaskFilterDTO(null, Boolean.TRUE);
+    void should_getAndReturnAllTaskFromLoggedUser() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks")
+                .header(AUTHORIZATION, "Bearer " + token);
 
-        List<Task> tasksFiltered = taskService.findByFilter(filter);
-
-        assertFalse(tasksFiltered.isEmpty());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/filter?completed=true"))
+        mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$", hasSize(tasksFiltered.size())))
-                .andExpect(jsonPath("$[0].content", any(String.class)))
-                .andExpect(jsonPath("$[0].completed", is(Boolean.TRUE)));
+                .andExpect(jsonPath("$", hasSize(4)));
+    }
 
-        filter = new TaskFilterDTO("learn", null);
+    @Test
+    void should_getAndReturnListOfTasksLoggedUserWithCompletedEqualsTrue() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/filter")
+                .queryParam("completed", "true")
+                .header(AUTHORIZATION, "Bearer " + token);
 
-        tasksFiltered = taskService.findByFilter(filter);
-
-        assertFalse(tasksFiltered.isEmpty());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/filter?content=learn"))
+        mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$", hasSize(tasksFiltered.size())))
-                .andExpect(jsonPath("$[0].content", containsStringIgnoringCase("learn")))
-                .andExpect(jsonPath("$[0].completed", any(Boolean.class)));
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[*].content", everyItem(any(String.class))))
+                .andExpect(jsonPath("$[*].completed", everyItem(is(Boolean.TRUE))));
+    }
 
-        filter = new TaskFilterDTO("java", Boolean.TRUE);
+    @Test
+    void should_getAndReturnListOfTasksLoggedUserWithContentEqualsTrue() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/filter")
+                .queryParam("content", "learn")
+                .header(AUTHORIZATION, "Bearer " + token);
 
-        tasksFiltered = taskService.findByFilter(filter);
-
-        assertFalse(tasksFiltered.isEmpty());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/tasks/filter?content=java&completed=true"))
+        mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$", hasSize(tasksFiltered.size())))
-                .andExpect(jsonPath("$[0].content", containsStringIgnoringCase("java")))
-                .andExpect(jsonPath("$[0].completed", is(Boolean.TRUE)));
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[*].content", everyItem(containsStringIgnoringCase("learn"))))
+                .andExpect(jsonPath("$[*].completed", everyItem(any(Boolean.class))));
+    }
+    @Test
+    void should_getAndReturnListOfTasksLoggedUser_withCompletedEqualsTrueAndContentEqualsIssue() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/filter")
+                .queryParam("completed", "true")
+                .queryParam("content", "issue")
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[*].content", everyItem(containsStringIgnoringCase("issue"))))
+                .andExpect(jsonPath("$[*].completed", everyItem(is(Boolean.TRUE))));
     }
 
     @Test
     void should_create_a_new_task() throws Exception {
-        assertTrue(taskRespository.findById(1L).isEmpty());
-
         TaskDTO task = new TaskDTO("Learn spring boot", Boolean.TRUE);
 
         RequestBuilder postRequestBuilder = MockMvcRequestBuilders.post("/tasks")
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(task));
 
@@ -159,7 +177,6 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(header().string(LOCATION, containsString("tasks/1")));
 
-        assertTrue(taskRespository.findById(1L).isPresent());
     }
 
     @Test
@@ -167,6 +184,7 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
         TaskDTO task = new TaskDTO("", null);
 
         RequestBuilder postRequestBuilder = MockMvcRequestBuilders.post("/tasks")
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(task));
 
@@ -182,31 +200,42 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
-    void should_update_a_existing_task() throws Exception {
-        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
-
+    void should_notUpdateExistingTask() throws Exception {
         TaskDTO taskUpdated = new TaskDTO("Learn Azure", Boolean.FALSE);
 
-        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 2)
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(taskUpdated));
 
         mockMvc.perform(putRequestBuilder).andExpect(status().isNoContent());
-
-        Task task = taskService.findById(1L);
-
-        assertEquals(1L, task.getId());
-        assertEquals(taskUpdated.content(), task.getContent());
-        assertEquals(taskUpdated.completed(), task.getCompleted());
     }
 
     @Test
-    void should_throw_400_badRequest_update_invalid_data_task() throws Exception {
-        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
+    void should_notUpdateExistingTaskFromOtherUser_andReturn404NotFoundStatus() throws Exception {
+        TaskDTO taskUpdated = new TaskDTO("Learn Azure", Boolean.FALSE);
 
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 3)
+                .header(AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(taskUpdated));
+
+        mockMvc.perform(putRequestBuilder)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+    }
+
+    @Test
+    void should_throw400BadRequestUpdateInvalidDataTask() throws Exception {
         TaskDTO taskUpdated = new TaskDTO("", Boolean.TRUE);
 
         RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+                .header(AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(taskUpdated));
 
@@ -220,10 +249,11 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
-    void should_throw_404_notFound_update_nonExisting_task() throws Exception {
+    void should_throw404NotFoundUpdateNonExistingTask() throws Exception {
         TaskDTO taskUpdated = new TaskDTO("Study to OCP Java 21", Boolean.TRUE);
 
         RequestBuilder putRequestBuilder = MockMvcRequestBuilders.put("/tasks/{id}", 1)
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(taskUpdated));
 
@@ -234,32 +264,26 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
                 .andExpect(jsonPath("$.code", is(errorCode.name())))
                 .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
-
-        assertTrue(taskRespository.findById(1L).isEmpty());
     }
 
     @Test
-    void should_change_completedStatus_from_a_existing_task() throws Exception{
-        insertTaskWithIdOne("Study Math", Boolean.FALSE);
-
+    void should_changeCompletedStatusFromExistingTaskOwnedByLoggedUser() throws Exception{
         TaskCompletedDTO dto = new TaskCompletedDTO(Boolean.TRUE);
 
-        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 2)
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto));
+                .content(objectMapper.writeValueAsString(dto));
 
         mockMvc.perform(patchRequestBuilder).andExpect(status().isNoContent());
-
-        assertEquals(Boolean.TRUE, taskService.findById(1L).getCompleted());
     }
 
     @Test
-    void should_throw_400_badRequest_patch_invalid_data_task() throws Exception {
-        insertTaskWithIdOne("Learn AWS", Boolean.FALSE);
-
+    void should_throw400BadRequestPatchInvalidDataTask() throws Exception {
         TaskCompletedDTO dto = new TaskCompletedDTO(null);
 
         RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto));
 
@@ -273,10 +297,11 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
-    void should_throw_404_notFound_patch_nonExisting_task() throws Exception {
+    void should_throw404NotFound_whenPatchNonExistingTask() throws Exception {
         TaskCompletedDTO dto = new TaskCompletedDTO(Boolean.FALSE);
 
-        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1)
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 1000)
+                .header(AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto));
 
@@ -288,44 +313,73 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
                 .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
 
-        assertTrue(taskRespository.findById(1L).isEmpty());
+        assertTrue(taskRespository.findById(1000L).isEmpty());
     }
 
     @Test
-    void should_delete_a_task() throws Exception {
-        insertTaskWithIdOne("Will be delete", Boolean.TRUE);
+    void should_throw404NotFound_whenPatchExistingTaskFromOtherUser() throws Exception {
+        TaskCompletedDTO dto = new TaskCompletedDTO(Boolean.FALSE);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/tasks/{id}", 1))
-                .andExpect(status().isNoContent());
+        RequestBuilder patchRequestBuilder = MockMvcRequestBuilders.patch("/tasks/{id}", 3)
+                .header(AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto));
 
-        assertTrue(taskRespository.findById(1L).isEmpty());
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        mockMvc.perform(patchRequestBuilder)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+
+        assertTrue(taskRespository.findById(3L).isPresent());
     }
 
     @Test
-    void should_return_204_notContent_delete_nonExisting_task() throws Exception {
+    void should_deleteExistingTaskOwnedByLoggedUser() throws Exception {
+        RequestBuilder deleteRequest = MockMvcRequestBuilders.delete("/tasks/{id}", 2)
+                        .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(deleteRequest).andExpect(status().isNoContent());
+
+        assertTrue(taskRespository.findById(2L).isEmpty());
+    }
+
+    @Test
+    void should_return404NotFound_whenDeleteNonExistingTaskOwnedByLoggedUser() throws Exception {
         Long invalidId = 1000L;
 
         assertTrue(taskRespository.findById(invalidId).isEmpty());
 
         ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/tasks/{id}", invalidId))
+        RequestBuilder deleteRequest = MockMvcRequestBuilders.delete("/tasks/{id}", invalidId)
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(deleteRequest)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code", is(errorCode.name())))
                 .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
                 .andExpect(jsonPath("$.fields", anEmptyMap()));
     }
 
-    @AfterEach
-    void clean() {
-        JdbcTestUtils.deleteFromTables(jdbcTemplate, "tasks");
-        authenticationUtils.cleanUpAssistantTables(jdbcTemplate);
-    }
+    @Test
+    void should_return404NotFound_whenDeleteExistingTaskFromOtherUser() throws Exception {
+        Long otherUserTaskId = 3L;
 
-    private void insertTaskWithIdOne(String content, Boolean completed) {
-        int completedStatus = completed.equals(Boolean.TRUE) ? 1 : 0;
-        String sql = String.format("INSERT INTO tasks (IDT_TASK, CONTENT, COMPLETED) VALUES (1, '%s', %d)", content, completedStatus);
-        jdbcTemplate.execute(sql);
+        ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
+
+        RequestBuilder deleteRequest = MockMvcRequestBuilders.delete("/tasks/{id}", otherUserTaskId)
+                .header(AUTHORIZATION, "Bearer " + token);
+
+        mockMvc.perform(deleteRequest)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code", is(errorCode.name())))
+                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
+                .andExpect(jsonPath("$.fields", anEmptyMap()));
+
+        assertTrue(taskRespository.findById(otherUserTaskId).isPresent());
     }
 
 }

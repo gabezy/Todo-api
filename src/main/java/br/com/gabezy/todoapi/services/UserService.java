@@ -11,13 +11,11 @@ import br.com.gabezy.todoapi.domain.enumaration.RoleName;
 import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.UserRespository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import br.com.gabezy.todoapi.utils.AuthenticationUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class UserService {
@@ -106,18 +104,10 @@ public class UserService {
     }
 
     private void validateUserAccess(User user) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (Objects.isNull(authentication) || !authentication.isAuthenticated()) {
-            throw new InvalidCredentialsException(ErrorCode.USER_NOT_AUTHENTICATED);
-        }
-
-        String authenticadedUserEmail = (String) authentication.getPrincipal();
-
-        if (!authenticadedUserEmail.equals(user.getEmail())) {
+        String currentUserEmail = AuthenticationUtil.getCurrentUserEmail();
+        if (!user.getEmail().equals(currentUserEmail)) {
             throw new InvalidCredentialsException(ErrorCode.USER_NOT_AUTHORIZED);
         }
-
     }
 
 }
