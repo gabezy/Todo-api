@@ -4,6 +4,7 @@ import br.com.gabezy.todoapi.domain.dto.CreateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UpdateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UserDTO;
 import br.com.gabezy.todoapi.services.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@Tag(name = "User", description = "Operations relate to Users")
 public class UserController implements GenericCrudController<UserDTO, Long, CreateUserDTO, UpdateUserDTO> {
 
     private final UserService userService;

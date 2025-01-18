@@ -30,11 +30,6 @@ public class TaskController implements GenericCrudController<TaskDataDTO, Long, 
     }
 
     @Override
-    @Operation(summary = "Create Task", description = "Create Task based on content and completed status")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Task successfully created"),
-            @ApiResponse(responseCode = "400", description = "Invalid fields in the request body")
-    })
     public ResponseEntity<Void> create(TaskDTO createDTO, UriComponentsBuilder builder) {
         Long taskId = taskService.createTask(createDTO).getId();
         URI uri = builder.path("tasks/{id}")
@@ -44,18 +39,11 @@ public class TaskController implements GenericCrudController<TaskDataDTO, Long, 
     }
 
     @Override
-    @ApiResponse(responseCode = "200", description = "Successfully retrieve all task")
-    @Operation(summary = "Get all tasks", description = "Get list of all tasks")
     public ResponseEntity<List<TaskDataDTO>> findAll() {
         return ResponseEntity.ok(taskService.findAll());
     }
 
     @Override
-    @Operation(summary = "Get task by ID", description = "Get task based on ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Task successfully retrieved"),
-            @ApiResponse(responseCode = "404", description = "Task not found (ID doesn't exist)")
-    })
     public ResponseEntity<TaskDataDTO> findById(Long id) {
         return ResponseEntity.ok(taskService.findById(id));
     }
@@ -80,23 +68,12 @@ public class TaskController implements GenericCrudController<TaskDataDTO, Long, 
     }
 
     @Override
-    @Operation(summary = "Update task", description = "Update all task's information")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Task successfully updated"),
-            @ApiResponse(responseCode = "400", description = "Invalid fields in the request body"),
-            @ApiResponse(responseCode = "404", description = "Task not found (ID doesn't exist)")
-    })
     public ResponseEntity<Void> update(Long id, TaskDTO updateDTO) {
         taskService.updateTask(id, updateDTO);
         return ResponseEntity.noContent().build();
     }
 
     @Override
-    @Operation(summary = "Delete task by ID", description = "Delete task based on the ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Task successfully deleted"),
-            @ApiResponse(responseCode = "404", description = "Task not found (ID doesn't exist)")
-    })
     public ResponseEntity<Void> delete(Long id) {
         taskService.deleteTaskById(id);
         return ResponseEntity.noContent().build();
