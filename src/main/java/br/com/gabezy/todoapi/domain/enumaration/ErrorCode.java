@@ -10,7 +10,8 @@ public enum ErrorCode {
     MISSING_TOKEN("Authorization Token is missing"),
     INVALID_FIELDS("The request body has invalid fields"),
     USER_NOT_AUTHENTICATED("User not authenticated"),
-    USER_NOT_AUTHORIZED("User not authorized");
+    USER_NOT_AUTHORIZED("User not authorized"),
+    INTERNAL_ERROR_SERVER("Unexpected error has occurred. Please try again later.");
 
     private final String message;
 

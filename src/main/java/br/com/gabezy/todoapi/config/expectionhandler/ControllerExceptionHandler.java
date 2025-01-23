@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final ErrorCode INVALID_FIELDS = ErrorCode.INVALID_FIELDS;
+    private static final ErrorCode INTERNAL_SERVER_ERROR = ErrorCode.INTERNAL_ERROR_SERVER;
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
@@ -42,6 +43,12 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
         var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
         return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleAllException(Exception ex, WebRequest request) {
+        var error = new ResponseError(INTERNAL_SERVER_ERROR.name(), INTERNAL_SERVER_ERROR.getMessage(), Collections.emptyMap());
+        return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
     @Override
