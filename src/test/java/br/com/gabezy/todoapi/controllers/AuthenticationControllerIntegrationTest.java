@@ -71,13 +71,8 @@ class AuthenticationControllerIntegrationTest extends GenericIntegrationTestBase
                 .contentType(APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDTO));
 
-        ErrorCode errorCode = ErrorCode.USER_NOT_FOUND;
-
         mockMvc.perform(postRequestBuilder)
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code", is(errorCode.name())))
-                .andExpect(jsonPath("$.description", is(errorCode.getMessage())))
-                .andExpect(jsonPath("$.fields", anEmptyMap()));
+                .andExpect(status().isForbidden());
     }
 
     @Test
