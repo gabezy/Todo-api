@@ -1,6 +1,6 @@
 todo-api:
-  jwt-secret: ${JWT_SECRET}
-  jwt-issuer: ${JWT_ISSUER}
+  jwt-secret: "&df0$kC5Iogj=j9"
+  jwt-issuer: gabezy-todo-api
 swagger:
   title: TODO API
   description: Documentação on-line da API

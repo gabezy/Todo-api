@@ -1,14 +1,4 @@
-todo-api:
-  jwt-secret: "&dksasld334_$#s"
-  jwt-issuer: gabezy-todo-api
----
-swagger:
-  title: TODO API
-  description: Documentação on-line da API
----
 spring:
-  application:
-    name: Todo-api
   datasource:
     url: jdbc:mysql://db-test:3306/TEST?allowPublicKeyRetrieval=true&serverTimezone=UTC&useSSL=false
     username: USER_TODO
@@ -23,17 +13,3 @@ spring:
     user: root
     password: secretpw
     table: FLYWAY_SCHEMA_HISTORY
-springdoc:
-  swagger-ui:
-    operations-sorter: method
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /api-docs
----
-logging:
-  level:
-    sql: info
-    root: info
