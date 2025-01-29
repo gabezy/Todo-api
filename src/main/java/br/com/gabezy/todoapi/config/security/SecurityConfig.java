@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request ->
                     request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                             .requestMatchers(HttpMethod.POST, "/auth", "/users").permitAll()
-                            .requestMatchers(HttpMethod.GET, "/users/{id}", "/users").hasAnyAuthority(RoleName.ADMINISTRATOR.name())
+                            .requestMatchers(HttpMethod.GET, "/users/{id}", "/users").hasAuthority(RoleName.ADMINISTRATOR.name())
                             .anyRequest().authenticated()
                 )
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -57,7 +57,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration().applyPermitDefaultValues();
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEADk"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
