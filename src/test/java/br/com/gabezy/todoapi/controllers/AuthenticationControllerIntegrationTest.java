@@ -60,7 +60,7 @@ class AuthenticationControllerIntegrationTest extends GenericIntegrationTestBase
                 .content(objectMapper.writeValueAsString(loginDTO));
 
         mockMvc.perform(postRequestBuilder)
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -72,7 +72,7 @@ class AuthenticationControllerIntegrationTest extends GenericIntegrationTestBase
                 .content(objectMapper.writeValueAsString(loginDTO));
 
         mockMvc.perform(postRequestBuilder)
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

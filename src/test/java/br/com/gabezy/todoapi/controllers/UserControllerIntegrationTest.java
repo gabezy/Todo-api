@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -63,11 +64,20 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto));
 
-        mockMvc.perform(postRequest)
+        MvcResult mvcResult  = mockMvc.perform(postRequest)
                 .andExpect(status().isCreated())
-                .andExpect(header().string(LOCATION, containsString("users/1")));
+                .andExpect(header().string(LOCATION, containsString("/users/")))
+                .andReturn();
 
-        Optional<User> userOptional = userRespository.findById(1L);
+        String location = mvcResult.getResponse().getHeader(LOCATION);
+
+        assertNotNull(location);
+
+        String[] splittedLocationString = location.split("/");
+
+        Long userId = Long.parseLong(splittedLocationString[splittedLocationString.length - 1]);
+
+        Optional<User> userOptional = userRespository.findById(userId);
 
         assertTrue(userOptional.isPresent());
         assertNotEquals(dto.password(), userOptional.get().getPassword());

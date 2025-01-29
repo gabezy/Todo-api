@@ -95,6 +95,23 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
+    void should_return401Unauthorized_whenFindById_withoutAuthorizationHeader() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/{id}", 3);
+
+        mockMvc.perform(getRequest).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void should_return401Unauthorized_whenFindById_withoutAValidToken() throws Exception {
+        String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnYWJlenktdG9kby1hcGkiLCJpYXQiOjE3Mzc4MzAyNjksImV4cCI6MTczNzg0NDY2OSwic3ViIjoiYWRtaW5AZW1haWwuY29tIn0";
+
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks/{id}", 3)
+                .header(AUTHORIZATION, "Bearer " + invalidToken);
+
+        mockMvc.perform(getRequest).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void should_return_404_notFound_get_nonExisting_task() throws Exception {
         ErrorCode errorCode = ErrorCode.TASK_NOT_FOUND;
 
