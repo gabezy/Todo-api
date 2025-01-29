@@ -1,6 +1,7 @@
 package br.com.gabezy.todoapi.config.security;
 
 import br.com.gabezy.todoapi.domain.enumaration.RoleName;
+import br.com.gabezy.todoapi.utils.EndpointUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,15 +27,11 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final UserAuthenticationFilter authenticationFilter;
+    private final AuthenticationFilter authenticationFilter;
 
-    public SecurityConfig(UserAuthenticationFilter authenticationFilter) {
+    public SecurityConfig(AuthenticationFilter authenticationFilter) {
         this.authenticationFilter = authenticationFilter;
     }
-
-    private static final String[] PUBLIC_ENDPOINTS = {
-            "/api-docs/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/swagger-ui/index.html"
-    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
@@ -45,8 +42,8 @@ public class SecurityConfig {
                         sessions.sessionCreationPolicy(STATELESS)
                 )
                 .authorizeHttpRequests(request ->
-                    request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                            .requestMatchers(HttpMethod.POST, "/auth", "/users").permitAll()
+                    request.requestMatchers(EndpointUtil.PUBLIC_ENDPOINTS).permitAll()
+                            .requestMatchers(HttpMethod.POST, EndpointUtil.PUBLIC_POST_ENDPOINTS).permitAll()
                             .requestMatchers(HttpMethod.GET, "/users/{id}", "/users").hasAuthority(RoleName.ADMINISTRATOR.name())
                             .anyRequest().authenticated()
                 )
