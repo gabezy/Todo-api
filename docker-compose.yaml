@@ -7,7 +7,7 @@ services:
     ports:
       - '8080:8080'
     environment:
-      - SPRING_PROFILES_ACTIVE=test
+      - SPRING_PROFILES_ACTIVE=local,test
     depends_on:
       - db-test
   db-dev:
@@ -23,6 +23,8 @@ services:
       - MYSQL_PASSWORD=secret
   db-test:
     image: mysql:latest
+    ports:
+      - "3306:3306"
     volumes:
       - todo-api-data-db-test:/var/lib/mysql
     environment:
