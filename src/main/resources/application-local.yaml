@@ -34,5 +34,6 @@ springdoc:
 ---
 logging:
   level:
+    org.springframework.security: debug
     sql: info
     root: info
