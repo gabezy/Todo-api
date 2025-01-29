@@ -59,7 +59,8 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        var httpHeaders = new HttpHeaders(headers);
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 
