@@ -12,6 +12,9 @@ import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.UserRespository;
 import br.com.gabezy.todoapi.utils.AuthenticationUtil;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -43,10 +46,15 @@ public class UserService {
         return mapToUserInfoDTO(user);
     }
 
-    public List<UserDTO> findAll() {
-        return repository.findAll().stream()
+    public Page<UserDTO> findAll(Pageable pageable) {
+        Page<User> userPage = repository.findAll(pageable);
+
+        List<UserDTO> userDTOList = userPage.getContent()
+                .stream()
                 .map(this::mapToUserInfoDTO)
                 .toList();
+
+        return new PageImpl<>(userDTOList, pageable, userPage.getTotalElements());
     }
 
     public List<UserDTO> findByFilter(UserFilterDTO dto) {
