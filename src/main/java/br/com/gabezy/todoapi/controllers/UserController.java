@@ -5,13 +5,14 @@ import br.com.gabezy.todoapi.domain.dto.UpdateUserDTO;
 import br.com.gabezy.todoapi.domain.dto.UserDTO;
 import br.com.gabezy.todoapi.services.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -34,8 +35,8 @@ public class UserController implements GenericCrudController<UserDTO, Long, Crea
     }
 
     @Override
-    public ResponseEntity<List<UserDTO>> findAll() {
-        return ResponseEntity.ok(userService.findAll());
+    public ResponseEntity<Page<UserDTO>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(userService.findAll(pageable));
     }
 
     @Override

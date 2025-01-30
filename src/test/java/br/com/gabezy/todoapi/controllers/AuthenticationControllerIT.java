@@ -19,7 +19,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class AuthenticationControllerIntegrationTest extends GenericIntegrationTestBase {
+class AuthenticationControllerIT extends GenericIntegrationTestBase {
 
     @Autowired
     private PasswordEncoder passwordEncoder;

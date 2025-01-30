@@ -29,7 +29,7 @@ import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class UserControllerIntegrationTest extends GenericIntegrationTestBase {
+class UserControllerIT extends GenericIntegrationTestBase {
 
     @Autowired
     private UserRespository userRespository;
@@ -135,7 +135,7 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
     @Test
     @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
     @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
-    void should_findAllAndReturnUsers_whenPassAdministratorToken() throws Exception {
+    void should_findAllAndReturnUsersPage_whenPassAdministratorToken() throws Exception {
         String token = authenticationUtils.generateTokenForAdministrator(jdbcTemplate, loginDTO).token();
 
         RequestBuilder getRequest = MockMvcRequestBuilders.get("/users")
@@ -143,7 +143,30 @@ class UserControllerIntegrationTest extends GenericIntegrationTestBase {
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(8)));
+                .andExpect(jsonPath("$.content", hasSize(8)))
+                .andExpect(jsonPath("$.totalElements", is(8)));
+    }
+
+    @Test
+    @Sql(scripts = INSERT_USERS_SCRIPT, executionPhase = ExecutionPhase.BEFORE_TEST_METHOD)
+    @Sql(scripts = CLEAN_USERS_SCRIPT, executionPhase = ExecutionPhase.AFTER_TEST_METHOD)
+    void should_findAllAndReturnUsersPageSortedByEmail_whenPassAdministratorToken() throws Exception {
+        String token = authenticationUtils.generateTokenForAdministrator(jdbcTemplate, loginDTO).token();
+
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/users")
+                .header(AUTHORIZATION, "Bearer " + token)
+                .param("page", "0")
+                .param("size", "10")
+                .param("sort", "email,asc");
+
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(8)))
+                .andExpect(jsonPath("$.totalElements", is(8)))
+                .andExpect(jsonPath("$.content[0].email", is("eminen.doe@email.com")))
+                .andExpect(jsonPath("$.content[1].email", is("francisco.doe@email.com")))
+                .andExpect(jsonPath("$.content[2].email", is("gabriel.doe@email.com")));
     }
 
     @Test

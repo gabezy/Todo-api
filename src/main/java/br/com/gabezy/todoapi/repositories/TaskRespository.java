@@ -2,6 +2,8 @@ package br.com.gabezy.todoapi.repositories;
 
 import br.com.gabezy.todoapi.domain.entity.Task;
 import br.com.gabezy.todoapi.domain.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -12,7 +14,7 @@ public interface TaskRespository extends JpaRepository<Task, Long> {
 
     Optional<Task> findByIdAndUser(Long id, User user);
 
-    List<Task> findAllByUser(User user);
+    Page<Task> findAllByUser(User user, Pageable pageable);
 
     @Query("SELECT t FROM Task t " +
             "JOIN t.user u " +

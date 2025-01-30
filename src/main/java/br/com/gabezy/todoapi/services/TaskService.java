@@ -10,6 +10,9 @@ import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import br.com.gabezy.todoapi.repositories.TaskRespository;
 import br.com.gabezy.todoapi.utils.AuthenticationUtil;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,12 +34,17 @@ public class TaskService {
         return repository.save(task);
     }
 
-    public List<TaskDataDTO> findAll() {
+    public Page<TaskDataDTO> findAll(Pageable pageable) {
         User currentUser = AuthenticationUtil.getCurrentUser();
-        return repository.findAllByUser(currentUser)
+
+        Page<Task> taskPage = repository.findAllByUser(currentUser, pageable);
+
+        List<TaskDataDTO> taskDataList = taskPage.getContent()
                 .stream()
                 .map(this::mapToDataDTO)
                 .toList();
+
+        return new PageImpl<>(taskDataList, pageable, taskPage.getTotalElements());
     }
 
     public TaskDataDTO findById(Long id) {
