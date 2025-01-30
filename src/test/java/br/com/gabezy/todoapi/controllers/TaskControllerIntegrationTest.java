@@ -129,14 +129,34 @@ class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
     }
 
     @Test
-    void should_getAndReturnAllTaskFromLoggedUser() throws Exception {
+    void should_getAndReturnAllTaskPageFromLoggedUser() throws Exception {
         RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks")
                 .header(AUTHORIZATION, "Bearer " + token);
 
         mockMvc.perform(getRequest)
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$", hasSize(4)));
+                .andExpect(jsonPath("$.content", hasSize(4)))
+                .andExpect(jsonPath("$.totalElements", is(4)));
+    }
+
+    @Test
+    void should_getAndReturnAllTaskPageFromLoggedUserSortedByContent() throws Exception {
+        RequestBuilder getRequest = MockMvcRequestBuilders.get("/tasks")
+                .header(AUTHORIZATION, "Bearer " + token)
+                .param("page", "0")
+                .param("size", "10")
+                .param("sort", "content,asc");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.content", hasSize(4)))
+                .andExpect(jsonPath("$.totalElements", is(4)))
+                .andExpect(jsonPath("$.content[0].content", is("Fix jira issue #211321")))
+                .andExpect(jsonPath("$.content[1].content", is("Fix jira issue #front-end123213")))
+                .andExpect(jsonPath("$.content[2].content", is("Learn Docker")))
+                .andExpect(jsonPath("$.content[3].content", is("Talk to the infrastructure guy by the server issue")));
     }
 
     @Test
