@@ -29,7 +29,7 @@ import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class UserControllerIntegrationTest extends GenericIntegrationTestBase {
+class UserControllerIT extends GenericIntegrationTestBase {
 
     @Autowired
     private UserRespository userRespository;

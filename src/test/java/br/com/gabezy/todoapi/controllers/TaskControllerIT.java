@@ -29,7 +29,7 @@ import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Sql(scripts = "classpath:/scripts/task/clean_task.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
-class TaskControllerIntegrationTest extends GenericIntegrationTestBase {
+class TaskControllerIT extends GenericIntegrationTestBase {
 
     @Autowired
     private AuthenticationService authenticationService;
