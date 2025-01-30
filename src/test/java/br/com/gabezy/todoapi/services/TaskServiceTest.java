@@ -16,6 +16,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -82,20 +86,25 @@ class TaskServiceTest {
     }
 
     @Test
-    void should_find_all_tasks() {
+    void should_findAllTasks_andReturnUserDataDTOPage() {
         try (MockedStatic<AuthenticationUtil> mockedStatic = mockStatic(AuthenticationUtil.class)) {
-            mockedStatic.when(AuthenticationUtil::getCurrentUser).thenReturn(user);
-            when(taskRespository.findAllByUser(user)).thenReturn(List.of(task1, task2));
+            Pageable pageable = PageRequest.of(0, 5);
+            List<Task> tasks = List.of(task1, task2);
+            Page<Task> taskPage = new PageImpl<>(tasks, pageable, tasks.size());
 
-            List<TaskDataDTO> result = taskService.findAll();
+            mockedStatic.when(AuthenticationUtil::getCurrentUser).thenReturn(user);
+            when(taskRespository.findAllByUser(user, pageable)).thenReturn(taskPage);
+
+
+            Page<TaskDataDTO> result = taskService.findAll(pageable);
 
             assertNotNull(result);
-            assertEquals(2, result.size());
-            assertTrue(result.stream().anyMatch(task -> task.completed().equals(Boolean.TRUE)));
-            assertTrue(result.stream().anyMatch(task ->task.completed().equals(Boolean.FALSE)));
-            assertFalse(result.stream().anyMatch(task -> task.id().equals(3L)));
+            assertEquals(2, result.getTotalElements());
+            assertTrue(result.getContent().stream().anyMatch(task -> task.completed().equals(Boolean.TRUE)));
+            assertTrue(result.getContent().stream().anyMatch(task ->task.completed().equals(Boolean.FALSE)));
+            assertFalse(result.getContent().stream().anyMatch(task -> task.id().equals(3L)));
 
-            verify(taskRespository).findAllByUser(user);
+            verify(taskRespository, times(1)).findAllByUser(user, pageable);
             mockedStatic.verify(AuthenticationUtil::getCurrentUser);
         }
     }

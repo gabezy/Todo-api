@@ -16,6 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -131,18 +135,22 @@ class UserServiceTest {
     }
 
     @Test
-    void should_findAndReturnListUsersInfoDTO() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+    void should_findAndReturnListUsersInfoDTOPage() {
+        Pageable pageable = PageRequest.of(0, 5);
+        List<User> users = List.of(user);
+        Page<User> userPage = new PageImpl<>(users, pageable, users.size());
 
-        List<UserDTO> result = userService.findAll();
+        when(userRepository.findAll(pageable)).thenReturn(userPage);
+
+        Page<UserDTO> result = userService.findAll(pageable);
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        assertEquals(user.getId(), result.get(0).id());
-        assertEquals(user.getRoles().size(), result.get(0).roles().size());
+        assertEquals(1, result.getTotalElements());
+        assertEquals(user.getId(), result.getContent().get(0).id());
+        assertEquals(user.getRoles().size(), result.getContent().get(0).roles().size());
 
-        verify(userRepository).findAll();
+        verify(userRepository, times(1)).findAll(pageable);
     }
 
     @Test
