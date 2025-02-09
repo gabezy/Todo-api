@@ -1,6 +1,7 @@
 todo-api:
   jwt-secret: "&df0$kC5Iogj=j9"
   jwt-issuer: gabezy-todo-api
+---
 swagger:
   title: TODO API
   description: Documentação on-line da API
@@ -22,6 +23,7 @@ spring:
     user: root
     password: secretpw
     table: FLYWAY_SCHEMA_HISTORY
+---
 springdoc:
   swagger-ui:
     operations-sorter: method
