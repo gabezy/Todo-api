@@ -5,9 +5,12 @@ import br.com.gabezy.todoapi.domain.dto.TaskDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskDataDTO;
 import br.com.gabezy.todoapi.domain.dto.TaskFilterDTO;
 import br.com.gabezy.todoapi.services.TaskService;
+import br.com.gabezy.todoapi.controllers.generics.GenericCrudController;
+import br.com.gabezy.todoapi.controllers.generics.GenericFilteredController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -23,7 +26,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/tasks")
 @Tag(name = "Task", description = "Operation relate to task")
-public class TaskController implements GenericCrudController<TaskDataDTO, Long, TaskDTO, TaskDTO> {
+public class TaskController implements GenericCrudController<TaskDataDTO, Long, TaskDTO, TaskDTO>,
+        GenericFilteredController<TaskFilterDTO, TaskDataDTO> {
 
     private final TaskService taskService;
 
@@ -34,9 +38,7 @@ public class TaskController implements GenericCrudController<TaskDataDTO, Long, 
     @Override
     public ResponseEntity<Void> create(TaskDTO createDTO, UriComponentsBuilder builder) {
         Long taskId = taskService.createTask(createDTO).getId();
-        URI uri = builder.path("tasks/{id}")
-                .buildAndExpand(taskId)
-                .toUri();
+        URI uri = builder.path("tasks/{id}").buildAndExpand(taskId).toUri();
         return ResponseEntity.created(uri).build();
     }
 
@@ -50,15 +52,16 @@ public class TaskController implements GenericCrudController<TaskDataDTO, Long, 
         return ResponseEntity.ok(taskService.findById(id));
     }
 
-    @GetMapping(value = "/filter", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get tasks by filter", description = "Get list of tasks based on filter")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieve all task")
+    @Override
     public ResponseEntity<List<TaskDataDTO>> findByFilter(TaskFilterDTO filter) {
         return ResponseEntity.ok(taskService.findByFilter(filter));
     }
 
     @PatchMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Change task's completed status", description = "Patch the completed information by the task's ID")
+    @Operation(
+            summary = "Change task's completed status", description = "Patch the completed information by the task's ID",
+            security = @SecurityRequirement(name = "bearer-key")
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Task successfully patched"),
             @ApiResponse(responseCode = "400", description = "Invalid fields in the request body"),
