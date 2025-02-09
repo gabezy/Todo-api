@@ -1,15 +1,16 @@
 name: todo-api
-
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile-test
     ports:
       - '8080:8080'
     environment:
-      - SPRING_PROFILES_ACTIVE=test
+      - SPRING_PROFILES_ACTIVE=local,test
     depends_on:
-      - db
-  db:
+      - db-test
+  db-dev:
     image: mysql:latest
     ports:
       - "3306:3306"
@@ -20,6 +21,17 @@ services:
       - MYSQL_DATABASE=DEV
       - MYSQL_USER=USER_TODO
       - MYSQL_PASSWORD=secret
-
+  db-test:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    volumes:
+      - todo-api-data-db-test:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=secretpw
+      - MYSQL_DATABASE=TEST
+      - MYSQL_USER=USER_TODO
+      - MYSQL_PASSWORD=secret
 volumes:
   todo-api-data-db:
+  todo-api-data-db-test:

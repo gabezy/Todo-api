@@ -1,0 +1,3 @@
+INSERT INTO roles (IDT_ROLE, NAME) VALUES
+    (1, 'USER'),
+    (2, 'ADMINISTRATOR');

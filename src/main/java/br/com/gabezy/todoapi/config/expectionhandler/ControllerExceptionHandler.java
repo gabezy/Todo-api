@@ -1,8 +1,10 @@
 package br.com.gabezy.todoapi.config.expectionhandler;
 
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
+import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
 import org.springframework.http.*;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final ErrorCode INVALID_FIELDS = ErrorCode.INVALID_FIELDS;
+    private static final ErrorCode INTERNAL_SERVER_ERROR = ErrorCode.INTERNAL_ERROR_SERVER;
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
@@ -31,13 +34,33 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        var error = new ResponseError(ErrorCode.TASK_NOT_FOUND.name(), ex.getMessage(), Collections.emptyMap());
+        ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
+        var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
         return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Object> handleInvalidCredentialsException(InvalidCredentialsException ex, WebRequest request) {
+        ErrorCode errorCode = ErrorCode.getErrorCodeByMessage(ex.getMessage());
+        var error = new ResponseError(errorCode.name(), ex.getMessage(), Collections.emptyMap());
+        return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        return this.handleExceptionInternal(ex, null, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleAllException(Exception ex, WebRequest request) {
+        var error = new ResponseError(INTERNAL_SERVER_ERROR.name(), INTERNAL_SERVER_ERROR.getMessage(), Collections.emptyMap());
+        return this.handleExceptionInternal(ex, error, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        var httpHeaders = new HttpHeaders(headers);
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 

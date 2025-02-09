@@ -1,0 +1,14 @@
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (10, 'jonh.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (11, 'jane.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (12, 'gabriel.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (13, 'francisco.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (14, 'josuah.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (15, 'snoop.dog@email.com', 'secret', CURRENT_TIMESTAMP);
+INSERT INTO users (IDT_USER, EMAIL, PASSWORD, CREATED_AT) VALUES (16, 'eminen.doe@email.com', 'secret', CURRENT_TIMESTAMP);
+
+INSERT INTO roles (IDT_ROLE, NAME) VALUES (1, 'USER');
+INSERT INTO roles (IDT_ROLE, NAME) VALUES (2, 'ADMINISTRATOR');
+
+INSERT INTO user_role (IDT_USER, IDT_ROLE) VALUES
+    (10, 1), (11, 1), (12, 1), (13, 1),
+    (14, 1), (15, 1), (16, 1);

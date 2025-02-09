@@ -1,0 +1,4 @@
+DELETE FROM tasks;
+DELETE FROM user_role;
+DELETE FROM users;
+DELETE FROM roles;

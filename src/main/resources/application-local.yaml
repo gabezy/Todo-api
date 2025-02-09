@@ -1,3 +1,7 @@
+todo-api:
+  jwt-secret: "&df0$kC5Iogj=j9"
+  jwt-issuer: gabezy-todo-api
+---
 swagger:
   title: TODO API
   description: Documentação on-line da API
@@ -6,7 +10,7 @@ spring:
   application:
     name: Todo-api
   datasource:
-    url: jdbc:mysql://localhost:3306/DEV
+    url: jdbc:mysql://localhost:3306/DEV?allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: USER_TODO
     password: secret
     driver-class-name: com.mysql.jdbc.Driver
@@ -15,10 +19,11 @@ spring:
       maximum-pool-size: 5
   flyway:
     enabled: true
-    url: jdbc:mysql://localhost:3306/DEV
+    url: jdbc:mysql://localhost:3306/DEV?allowPublicKeyRetrieval=true&serverTimezone=UTC
     user: root
     password: secretpw
     table: FLYWAY_SCHEMA_HISTORY
+---
 springdoc:
   swagger-ui:
     operations-sorter: method
@@ -31,5 +36,6 @@ springdoc:
 ---
 logging:
   level:
+    org.springframework.security: debug
     sql: info
     root: info

@@ -1,11 +1,19 @@
 package br.com.gabezy.todoapi.domain.enumaration;
 
+import java.util.Arrays;
+
 public enum ErrorCode {
 
     TASK_NOT_FOUND("Task not found"),
-    INVALID_FIELDS("The request body has invalid fields");
+    USER_NOT_FOUND("User not found"),
+    ROLE_NOT_FOUND("Role not found"),
+    MISSING_TOKEN("Authorization Token is missing"),
+    INVALID_FIELDS("The request body has invalid fields"),
+    USER_NOT_AUTHENTICATED("User not authenticated"),
+    USER_NOT_AUTHORIZED("User not authorized"),
+    INTERNAL_ERROR_SERVER("Unexpected error has occurred. Please try again later.");
 
-    private String message;
+    private final String message;
 
     ErrorCode(String message) {
         this.message = message;
@@ -13,5 +21,12 @@ public enum ErrorCode {
 
     public String getMessage() {
         return message;
+    }
+
+    public static ErrorCode getErrorCodeByMessage(String message) {
+        return Arrays.stream(ErrorCode.values())
+                .filter(errorCode -> errorCode.message.equals(message))
+                .findFirst()
+                .orElseThrow(RuntimeException::new);
     }
 }
