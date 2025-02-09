@@ -28,11 +28,7 @@ springdoc:
   swagger-ui:
     operations-sorter: method
     enabled: true
-    path: /swagger-ui.html
     tags-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /api-docs
 ---
 logging:
   level:
