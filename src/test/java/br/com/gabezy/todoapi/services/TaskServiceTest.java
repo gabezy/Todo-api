@@ -24,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -99,6 +101,7 @@ class TaskServiceTest {
             Page<TaskDataDTO> result = taskService.findAll(pageable);
 
             assertNotNull(result);
+            assertThat(result.getContent(), hasSize(2));
             assertEquals(2, result.getTotalElements());
             assertTrue(result.getContent().stream().anyMatch(task -> task.completed().equals(Boolean.TRUE)));
             assertTrue(result.getContent().stream().anyMatch(task ->task.completed().equals(Boolean.FALSE)));
@@ -237,7 +240,7 @@ class TaskServiceTest {
             mockedStatic.when(AuthenticationUtil::getCurrentUser).thenReturn(user);
 
             assertThrowsExactly(ResourceNotFoundException.class,
-                    () -> taskService.updateTask(invalidId, new TaskDTO("some content", Boolean.FALSE)));
+                    () -> taskService.updateTask(invalidId  , new TaskDTO("some content", Boolean.FALSE)));
 
             verify(taskRespository).findByIdAndUser(invalidId, user);
             mockedStatic.when(AuthenticationUtil::getCurrentUser).thenReturn(user);
