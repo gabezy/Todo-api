@@ -3,7 +3,10 @@ package br.com.gabezy.todoapi.config.expectionhandler;
 import br.com.gabezy.todoapi.domain.enumaration.ErrorCode;
 import br.com.gabezy.todoapi.exceptions.InvalidCredentialsException;
 import br.com.gabezy.todoapi.exceptions.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -31,6 +35,18 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         var error = new ResponseError(INVALID_FIELDS.name(), INVALID_FIELDS.getMessage(), fields);
         return this.handleExceptionInternal(ex, error, new HttpHeaders(headers), status, request);
     }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        Throwable rootCause = ex.getCause();
+
+        if (rootCause instanceof InvalidFormatException cause) {
+            return handleInvalidFormatException(cause, headers, status, request);
+        }
+
+        return super.handleHttpMessageNotReadable(ex, headers, status, request);
+    }
+
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
@@ -62,6 +78,19 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
         var httpHeaders = new HttpHeaders(headers);
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+    }
+
+    private ResponseEntity<Object> handleInvalidFormatException(InvalidFormatException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        String property = ex.getPath().stream()
+                .map(JsonMappingException.Reference::getFieldName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("."));
+
+        Map<String, String> fields = Map.of(property, "Invalid type '%s'".formatted(ex.getValue()));
+
+        var error = new ResponseError(INVALID_FIELDS.name(), INVALID_FIELDS.getMessage(), fields);
+
+        return this.handleExceptionInternal(ex, error, headers, status, request);
     }
 
 }
